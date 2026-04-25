@@ -1,0 +1,179 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
+class PanelAppSettingsRepository {
+  const PanelAppSettingsRepository();
+
+  static const String pollingIntervalStorageKey =
+      'panelmate.app_settings.polling_interval';
+  static const String gradientThemeStorageKey =
+      'panelmate.app_settings.gradient_theme';
+  static const String customGradientPrimaryStorageKey =
+      'panelmate.app_settings.custom_gradient.primary';
+  static const String customGradientSecondaryStorageKey =
+      'panelmate.app_settings.custom_gradient.secondary';
+  static const String customGradientTertiaryStorageKey =
+      'panelmate.app_settings.custom_gradient.tertiary';
+  static const String defaultPollingInterval = '30s';
+  static const String defaultGradientThemeId = 'mint';
+  static const int defaultCustomGradientPrimaryValue = 0xFF168F8F;
+  static const int defaultCustomGradientSecondaryValue = 0xFF55A8D7;
+  static const int defaultCustomGradientTertiaryValue = 0xFFFF9C6E;
+  static const String disabledPollingInterval = '关闭';
+  static const List<String> supportedPollingIntervals = <String>[
+    '15s',
+    '30s',
+    '60s',
+    disabledPollingInterval,
+  ];
+  static const List<String> supportedGradientThemeIds = <String>[
+    defaultGradientThemeId,
+    'ocean',
+    'garden',
+    'dawn',
+    'custom',
+  ];
+
+  Future<String> loadPollingInterval() async {
+    final preferences = await SharedPreferences.getInstance();
+    final storedValue = preferences.getString(pollingIntervalStorageKey);
+    final normalizedValue = normalizePollingInterval(storedValue);
+    if (storedValue != normalizedValue) {
+      await preferences.setString(pollingIntervalStorageKey, normalizedValue);
+    }
+    return normalizedValue;
+  }
+
+  Future<void> savePollingInterval(String value) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(
+      pollingIntervalStorageKey,
+      normalizePollingInterval(value),
+    );
+  }
+
+  Future<String> loadGradientThemeId() async {
+    final preferences = await SharedPreferences.getInstance();
+    final storedValue = preferences.getString(gradientThemeStorageKey);
+    final normalizedValue = normalizeGradientThemeId(storedValue);
+    if (storedValue != normalizedValue) {
+      await preferences.setString(gradientThemeStorageKey, normalizedValue);
+    }
+    return normalizedValue;
+  }
+
+  Future<void> saveGradientThemeId(String value) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(
+      gradientThemeStorageKey,
+      normalizeGradientThemeId(value),
+    );
+  }
+
+  Future<PanelCustomGradientThemeColors> loadCustomGradientThemeColors() async {
+    final preferences = await SharedPreferences.getInstance();
+    final colors = PanelCustomGradientThemeColors(
+      primaryValue: normalizeColorValue(
+        preferences.getInt(customGradientPrimaryStorageKey),
+        defaultCustomGradientPrimaryValue,
+      ),
+      secondaryValue: normalizeColorValue(
+        preferences.getInt(customGradientSecondaryStorageKey),
+        defaultCustomGradientSecondaryValue,
+      ),
+      tertiaryValue: normalizeColorValue(
+        preferences.getInt(customGradientTertiaryStorageKey),
+        defaultCustomGradientTertiaryValue,
+      ),
+    );
+
+    await preferences.setInt(
+      customGradientPrimaryStorageKey,
+      colors.primaryValue,
+    );
+    await preferences.setInt(
+      customGradientSecondaryStorageKey,
+      colors.secondaryValue,
+    );
+    await preferences.setInt(
+      customGradientTertiaryStorageKey,
+      colors.tertiaryValue,
+    );
+
+    return colors;
+  }
+
+  Future<void> saveCustomGradientThemeColors(
+    PanelCustomGradientThemeColors colors,
+  ) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setInt(
+      customGradientPrimaryStorageKey,
+      normalizeColorValue(
+        colors.primaryValue,
+        defaultCustomGradientPrimaryValue,
+      ),
+    );
+    await preferences.setInt(
+      customGradientSecondaryStorageKey,
+      normalizeColorValue(
+        colors.secondaryValue,
+        defaultCustomGradientSecondaryValue,
+      ),
+    );
+    await preferences.setInt(
+      customGradientTertiaryStorageKey,
+      normalizeColorValue(
+        colors.tertiaryValue,
+        defaultCustomGradientTertiaryValue,
+      ),
+    );
+  }
+
+  static String normalizePollingInterval(String? value) {
+    if (supportedPollingIntervals.contains(value)) {
+      return value!;
+    }
+    return defaultPollingInterval;
+  }
+
+  static String normalizeGradientThemeId(String? value) {
+    if (supportedGradientThemeIds.contains(value)) {
+      return value!;
+    }
+    return defaultGradientThemeId;
+  }
+
+  static int normalizeColorValue(int? value, int fallback) {
+    if (value == null || value < 0 || value > 0xFFFFFFFF) {
+      return fallback;
+    }
+    return value | 0xFF000000;
+  }
+
+  static Duration? durationForPollingInterval(String? value) {
+    switch (normalizePollingInterval(value)) {
+      case '15s':
+        return const Duration(seconds: 15);
+      case '30s':
+        return const Duration(seconds: 30);
+      case '60s':
+        return const Duration(seconds: 60);
+      case disabledPollingInterval:
+        return null;
+      default:
+        return const Duration(seconds: 30);
+    }
+  }
+}
+
+class PanelCustomGradientThemeColors {
+  const PanelCustomGradientThemeColors({
+    required this.primaryValue,
+    required this.secondaryValue,
+    required this.tertiaryValue,
+  });
+
+  final int primaryValue;
+  final int secondaryValue;
+  final int tertiaryValue;
+}

@@ -1,0 +1,408 @@
+{
+  "source": {
+    "file": "V2_api.json",
+    "apiVersion": "v2",
+    "swagger": "2.0",
+    "title": "1Panel",
+    "declaredVersion": "2.0",
+    "basePath": "/api/v2",
+    "routeStyle": "colon_params",
+    "note": "本文件按 V2_api.json 实际接口定义抽取移动端对接清单。V2 路径参数风格使用 /:id，而不是 Swagger 常见的 /{id}。"
+  },
+  "auth": {
+    "mode": "direct_to_1panel",
+    "securityRefs": [
+      {
+        "name": "ApiKeyAuth",
+        "requiredAfterLogin": true,
+        "resolvedHeaderName": null,
+        "note": "V2_api.json 中存在安全引用，但根节点没有 securityDefinitions，头名称在源文件里未声明。"
+      },
+      {
+        "name": "Timestamp",
+        "requiredAfterLogin": true,
+        "resolvedHeaderName": null,
+        "note": "V2_api.json 中存在安全引用，但根节点没有 securityDefinitions，头名称在源文件里未声明。"
+      }
+    ],
+    "explicitHeaders": [
+      {
+        "name": "EntranceCode",
+        "in": "header",
+        "requiredForLogin": true,
+        "description": "安全入口 base64 加密串"
+      }
+    ],
+    "headerInference": [
+      {
+        "securityRef": "ApiKeyAuth",
+        "likelyHeaderName": "1Panel-Token",
+        "inference": true
+      },
+      {
+        "securityRef": "Timestamp",
+        "likelyHeaderName": "1Panel-Timestamp",
+        "inference": true
+      }
+    ],
+    "captcha": {
+      "path": "/core/auth/captcha",
+      "method": "GET",
+      "summary": "Load captcha"
+    },
+    "login": {
+      "path": "/core/auth/login",
+      "method": "POST",
+      "requestBodyRef": "#/definitions/dto.Login",
+      "requiredHeaders": [
+        "EntranceCode"
+      ]
+    },
+    "mfaLogin": {
+      "path": "/core/auth/mfalogin",
+      "method": "POST",
+      "requestBodyRef": "#/definitions/dto.MFALogin"
+    },
+    "logout": {
+      "path": "/core/auth/logout",
+      "method": "POST",
+      "security": [
+        "ApiKeyAuth",
+        "Timestamp"
+      ]
+    }
+  },
+  "modules": [
+    {
+      "module": "dashboard",
+      "required": true,
+      "description": "多服务器概览和单服务器基础监控",
+      "endpoints": [
+        {
+          "name": "load_current_info",
+          "path": "/dashboard/current/:ioOption/:netOption",
+          "method": "GET",
+          "summary": "Load dashboard current info",
+          "pathParams": [
+            "ioOption",
+            "netOption"
+          ],
+          "security": [
+            "ApiKeyAuth",
+            "Timestamp"
+          ]
+        },
+        {
+          "name": "load_base_info",
+          "path": "/dashboard/base/:ioOption/:netOption",
+          "method": "GET",
+          "summary": "Load dashboard base info",
+          "pathParams": [
+            "ioOption",
+            "netOption"
+          ],
+          "security": [
+            "ApiKeyAuth",
+            "Timestamp"
+          ]
+        },
+        {
+          "name": "load_base_os",
+          "path": "/dashboard/base/os",
+          "method": "GET",
+          "summary": "Load dashboard base os info",
+          "security": [
+            "ApiKeyAuth",
+            "Timestamp"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "containers",
+      "required": true,
+      "description": "容器列表、状态、日志和启停",
+      "endpoints": [
+        {
+          "name": "search_containers",
+          "path": "/containers/search",
+          "method": "POST",
+          "summary": "Page containers",
+          "requestBodyRef": "#/definitions/dto.PageContainer",
+          "security": [
+            "ApiKeyAuth",
+            "Timestamp"
+          ]
+        },
+        {
+          "name": "operate_container",
+          "path": "/containers/operate",
+          "method": "POST",
+          "summary": "Operate Container",
+          "requestBodyRef": "#/definitions/dto.ContainerOperation",
+          "security": [
+            "ApiKeyAuth",
+            "Timestamp"
+          ]
+        },
+        {
+          "name": "search_container_logs",
+          "path": "/containers/search/log",
+          "method": "GET",
+          "summary": "Container logs",
+          "queryParams": [
+            "container",
+            "since",
+            "follow",
+            "tail",
+            "timestamp"
+          ],
+          "security": [
+            "ApiKeyAuth",
+            "Timestamp"
+          ]
+        },
+        {
+          "name": "list_container_stats",
+          "path": "/containers/list/stats",
+          "method": "GET",
+          "summary": "Load container stats",
+          "security": [
+            "ApiKeyAuth",
+            "Timestamp"
+          ]
+        },
+        {
+          "name": "container_stats",
+          "path": "/containers/stats/:id",
+          "method": "GET",
+          "summary": "Container stats",
+          "pathParams": [
+            "id"
+          ],
+          "security": [
+            "ApiKeyAuth",
+            "Timestamp"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "websites",
+      "required": true,
+      "description": "网站与应用的列表、操作、日志和证书状态",
+      "endpoints": [
+        {
+          "name": "search_websites",
+          "path": "/websites/search",
+          "method": "POST",
+          "summary": "Page websites",
+          "requestBodyRef": "#/definitions/request.WebsiteSearch",
+          "security": [
+            "ApiKeyAuth",
+            "Timestamp"
+          ]
+        },
+        {
+          "name": "operate_website",
+          "path": "/websites/operate",
+          "method": "POST",
+          "summary": "Operate website",
+          "requestBodyRef": "#/definitions/request.WebsiteOp",
+          "security": [
+            "ApiKeyAuth",
+            "Timestamp"
+          ]
+        },
+        {
+          "name": "website_log",
+          "path": "/websites/log",
+          "method": "POST",
+          "summary": "Operate website log",
+          "requestBodyRef": "#/definitions/request.WebsiteLogReq",
+          "security": [
+            "ApiKeyAuth",
+            "Timestamp"
+          ]
+        },
+        {
+          "name": "search_website_ssl",
+          "path": "/websites/ssl/search",
+          "method": "POST",
+          "summary": "Page website ssl",
+          "requestBodyRef": "#/definitions/request.WebsiteSSLSearch",
+          "security": [
+            "ApiKeyAuth",
+            "Timestamp"
+          ]
+        },
+        {
+          "name": "website_ssl_by_website_id",
+          "path": "/websites/ssl/website/:websiteId",
+          "method": "GET",
+          "summary": "Search website ssl by website id",
+          "pathParams": [
+            "websiteId"
+          ],
+          "security": [
+            "ApiKeyAuth",
+            "Timestamp"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "apps",
+      "required": true,
+      "description": "已安装应用列表和启停",
+      "endpoints": [
+        {
+          "name": "search_installed_apps",
+          "path": "/apps/installed/search",
+          "method": "POST",
+          "summary": "Page app installed",
+          "requestBodyRef": "#/definitions/request.AppInstalledSearch",
+          "security": [
+            "ApiKeyAuth",
+            "Timestamp"
+          ]
+        },
+        {
+          "name": "operate_installed_app",
+          "path": "/apps/installed/op",
+          "method": "POST",
+          "summary": "Operate installed app",
+          "requestBodyRef": "#/definitions/request.AppInstalledOperate",
+          "security": [
+            "ApiKeyAuth",
+            "Timestamp"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "databases",
+      "required": true,
+      "description": "数据库列表和状态",
+      "endpoints": [
+        {
+          "name": "search_mysql_databases",
+          "path": "/databases/search",
+          "method": "POST",
+          "summary": "Page mysql databases",
+          "requestBodyRef": "#/definitions/dto.MysqlDBSearch",
+          "security": [
+            "ApiKeyAuth",
+            "Timestamp"
+          ]
+        },
+        {
+          "name": "mysql_status",
+          "path": "/databases/status",
+          "method": "POST",
+          "summary": "Load mysql status info",
+          "requestBodyRef": "#/definitions/dto.OperationWithNameAndType",
+          "security": [
+            "ApiKeyAuth",
+            "Timestamp"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "backups",
+      "required": true,
+      "description": "备份账号和备份记录",
+      "endpoints": [
+        {
+          "name": "search_backup_accounts",
+          "path": "/backups/search",
+          "method": "POST",
+          "summary": "Search backup accounts with page",
+          "requestBodyRef": "#/definitions/dto.SearchPageWithType",
+          "security": [
+            "ApiKeyAuth",
+            "Timestamp"
+          ]
+        },
+        {
+          "name": "search_backup_records",
+          "path": "/backups/record/search",
+          "method": "POST",
+          "summary": "Page backup records",
+          "requestBodyRef": "#/definitions/dto.RecordSearch",
+          "security": [
+            "ApiKeyAuth",
+            "Timestamp"
+          ]
+        },
+        {
+          "name": "search_backup_records_by_cronjob",
+          "path": "/backups/record/search/bycronjob",
+          "method": "POST",
+          "summary": "Page backup records by cronjob",
+          "requestBodyRef": "#/definitions/dto.RecordSearchByCronjob",
+          "security": [
+            "ApiKeyAuth",
+            "Timestamp"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "files",
+      "required": false,
+      "description": "文件列表、内容和按行读取",
+      "endpoints": [
+        {
+          "name": "search_files",
+          "path": "/files/search",
+          "method": "POST",
+          "summary": "List files",
+          "requestBodyRef": "#/definitions/request.FileOption",
+          "security": [
+            "ApiKeyAuth",
+            "Timestamp"
+          ]
+        },
+        {
+          "name": "file_content",
+          "path": "/files/content",
+          "method": "POST",
+          "summary": "Load file content",
+          "requestBodyRef": "#/definitions/request.FileContentReq",
+          "security": [
+            "ApiKeyAuth",
+            "Timestamp"
+          ]
+        },
+        {
+          "name": "file_read_by_line",
+          "path": "/files/read",
+          "method": "POST",
+          "summary": "Read file by Line",
+          "requestBodyRef": "#/definitions/request.FileReadByLineReq",
+          "security": [
+            "ApiKeyAuth",
+            "Timestamp"
+          ]
+        }
+      ]
+    }
+  ],
+  "mvpOrder": [
+    "auth",
+    "dashboard",
+    "containers",
+    "websites",
+    "apps",
+    "databases",
+    "backups",
+    "files"
+  ],
+  "warnings": [
+    "V2_api.json 根节点没有 securityDefinitions，但路径上大量引用了 ApiKeyAuth 和 Timestamp。",
+    "resolvedHeaderName 为 null 的字段需要在实际联调时确认；当前移动端默认按 1Panel-Token 和 1Panel-Timestamp 处理。",
+    "V2 使用 /:param 形式的路径参数，前端代码生成器如果只支持 /{param}，需要先做路径转换。"
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "meta": {
+    "version": "2.0",
+    "updatedAt": "2026-04-06",
+    "scope": "1Panel V2 API only"
+  },
+  "apiVersion": "v2",
+  "basePath": "/api/v2",
+  "capabilityFlags": {
+    "useCoreAuth": true,
+    "useColonRouteParams": true,
+    "useDashboardCurrentGet": true,
+    "useContainerLogGet": true,
+    "requireEntranceCodeOnLogin": true
+  },
+  "auth": {
+    "loginPath": "/api/v2/core/auth/login",
+    "logoutPath": "/api/v2/core/auth/logout",
+    "tokenHeader": "1Panel-Token",
+    "timestampHeader": "1Panel-Timestamp",
+    "entranceCodeHeader": "EntranceCode"
+  },
+  "realApiNotes": {
+    "verifiedAt": "2026-04-06",
+    "requestBaseRule": "Use scheme://host:port/api/v2/... only. Do not prepend the login-page path segment to /api/v2/.",
+    "securityEntranceRule": "The login-page path segment is not an API base path. Treat it as a possible security entrance value when needed.",
+    "fieldReality": [
+      "Some empty values in the mobile UI are genuine server payload values, such as static websites without runtime info and apps without webUI.",
+      "The client should prefer real non-empty fallback fields from the same payload and hide optional empty rows.",
+      "The sampled server returned null for topCPUItems and topMemItems on /api/v2/dashboard/current/all/all."
+    ]
+  },
+  "modules": {
+    "overview": {
+      "current": "/api/v2/dashboard/current/:ioOption/:netOption",
+      "base": "/api/v2/dashboard/base/:ioOption/:netOption"
+    },
+    "containers": {
+      "search": "/api/v2/containers/search",
+      "operate": "/api/v2/containers/operate",
+      "logs": "/api/v2/containers/search/log",
+      "stats": "/api/v2/containers/stats/:id",
+      "listStats": "/api/v2/containers/list/stats"
+    },
+    "websites": {
+      "search": "/api/v2/websites/search",
+      "operate": "/api/v2/websites/operate",
+      "log": "/api/v2/websites/log",
+      "sslSearch": "/api/v2/websites/ssl/search",
+      "sslByWebsiteId": "/api/v2/websites/ssl/website/:websiteId"
+    },
+    "apps": {
+      "searchInstalled": "/api/v2/apps/installed/search",
+      "operateInstalled": "/api/v2/apps/installed/op"
+    },
+    "databases": {
+      "search": "/api/v2/databases/search",
+      "status": "/api/v2/databases/status"
+    },
+    "backups": {
+      "searchAccounts": "/api/v2/backups/search",
+      "searchRecords": "/api/v2/backups/record/search",
+      "searchRecordsByCronjob": "/api/v2/backups/record/search/bycronjob"
+    },
+    "files": {
+      "search": "/api/v2/files/search",
+      "content": "/api/v2/files/content",
+      "read": "/api/v2/files/read"
+    },
+    "logs": {
+      "operation": "/api/v2/core/logs/operation"
+    }
+  },
+  "removedSupport": {
+    "v1": true,
+    "notes": [
+      "移动端不再适配 /api/v1 路径体系。",
+      "不再维护 V1 与 V2 的路由差异、登录差异和命名空间兼容逻辑。",
+      "所有连接测试、页面文案与模块调用统一以 V2 为准。"
+    ]
+  }
+}
