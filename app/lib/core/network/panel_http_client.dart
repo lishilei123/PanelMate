@@ -11,4 +11,11 @@ abstract class PanelHttpClient {
     Map<String, dynamic>? queryParameters,
     Object? body,
   });
+
+  Future<Map<String, dynamic>> delete(
+    String path, {
+    Map<String, String>? headers,
+    Map<String, dynamic>? queryParameters,
+    Object? body,
+  });
 }

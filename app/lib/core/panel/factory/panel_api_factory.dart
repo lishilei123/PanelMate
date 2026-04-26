@@ -7,6 +7,7 @@ import '../v2/v2_backup_api.dart';
 import '../v2/v2_container_api.dart';
 import '../v2/v2_database_api.dart';
 import '../v2/v2_file_api.dart';
+import '../v2/v2_generic_api.dart';
 import '../v2/v2_overview_api.dart';
 import '../v2/v2_website_api.dart';
 import 'panel_api_bundle.dart';
@@ -30,6 +31,7 @@ class PanelApiFactory {
       database: V2DatabaseApi(httpClient),
       backup: V2BackupApi(httpClient),
       file: V2FileApi(httpClient),
+      generic: V2GenericApi(httpClient),
       compatibilityFlags: flags,
     );
   }

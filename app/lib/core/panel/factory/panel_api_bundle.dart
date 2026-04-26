@@ -4,6 +4,7 @@ import '../contracts/panel_backup_api.dart';
 import '../contracts/panel_container_api.dart';
 import '../contracts/panel_database_api.dart';
 import '../contracts/panel_file_api.dart';
+import '../contracts/panel_generic_api.dart';
 import '../contracts/panel_overview_api.dart';
 import '../contracts/panel_website_api.dart';
 import '../models/compatibility_flags.dart';
@@ -18,6 +19,7 @@ class PanelApiBundle {
     required this.database,
     required this.backup,
     required this.file,
+    required this.generic,
     required this.compatibilityFlags,
   });
 
@@ -29,5 +31,6 @@ class PanelApiBundle {
   final PanelDatabaseApi database;
   final PanelBackupApi backup;
   final PanelFileApi file;
+  final PanelGenericApi generic;
   final PanelCompatibilityFlags compatibilityFlags;
 }

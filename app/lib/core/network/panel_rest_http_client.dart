@@ -60,6 +60,29 @@ class PanelRestHttpClient implements PanelHttpClient {
     return _send(request);
   }
 
+  @override
+  Future<Map<String, dynamic>> delete(
+    String path, {
+    Map<String, String>? headers,
+    Map<String, dynamic>? queryParameters,
+    Object? body,
+  }) async {
+    final request = http.Request(
+      'DELETE',
+      _buildUri(path, queryParameters: queryParameters),
+    );
+    request.headers.addAll(
+      _buildHeaders(
+        headers: headers,
+        includeJsonContentType: body != null,
+      ),
+    );
+    if (body != null) {
+      request.body = jsonEncode(body);
+    }
+    return _send(request);
+  }
+
   Uri _buildUri(
     String path, {
     Map<String, dynamic>? queryParameters,

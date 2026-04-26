@@ -431,9 +431,6 @@ class _ServerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tags =
-        server.tags.isEmpty ? <String>[snapshot.groupLabel] : server.tags;
-
     return InkWell(
       borderRadius: BorderRadius.circular(8),
       onTap: onTap,
@@ -451,26 +448,13 @@ class _ServerCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        server.name,
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        server.endpointLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: const Color(0xFF60717B),
-                            ),
-                      ),
-                    ],
+                  child: Text(
+                    server.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
                   ),
                 ),
                 if (runtime?.isLoading == true)
@@ -497,7 +481,7 @@ class _ServerCard extends StatelessWidget {
               runSpacing: 8,
               children: [
                 StatusChip(label: server.authMode.label),
-                for (final tag in tags.take(3)) StatusChip(label: tag),
+                for (final tag in server.tags.take(3)) StatusChip(label: tag),
               ],
             ),
             const SizedBox(height: 14),
@@ -532,16 +516,26 @@ class _ServerCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
+            _TrafficSummaryRow(
+              realtimeText:
+                  '↓ ${snapshot.networkInText}  ↑ ${snapshot.networkOutText}',
+              totalText:
+                  '↓ ${snapshot.networkTotalInText}  ↑ ${snapshot.networkTotalOutText}',
+            ),
+            const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(
-                  child: Text(
-                    '同步 ${PanelValueFormatters.relativeTime(snapshot.lastSyncedAt)}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFF60717B),
-                        ),
+                if (snapshot.isOnline)
+                  const Spacer()
+                else
+                  Expanded(
+                    child: Text(
+                      '离线 ${PanelValueFormatters.relativeTime(snapshot.lastSyncedAt)}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: const Color(0xFF60717B),
+                          ),
+                    ),
                   ),
-                ),
                 PopupMenuButton<_ServerCardAction>(
                   key: ValueKey(
                     'overview.server.more.${server.credentialStorageKey}',
@@ -569,6 +563,58 @@ class _ServerCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _TrafficSummaryRow extends StatelessWidget {
+  const _TrafficSummaryRow({
+    required this.realtimeText,
+    required this.totalText,
+  });
+
+  final String realtimeText;
+  final String totalText;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: const Color(0xFF60717B),
+          fontWeight: FontWeight.w600,
+        );
+
+    return Row(
+      children: [
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                realtimeText,
+                maxLines: 1,
+                style: style,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(
+                totalText,
+                maxLines: 1,
+                style: style,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -4,6 +4,7 @@ export 'contracts/panel_backup_api.dart';
 export 'contracts/panel_container_api.dart';
 export 'contracts/panel_database_api.dart';
 export 'contracts/panel_file_api.dart';
+export 'contracts/panel_generic_api.dart';
 export 'contracts/panel_overview_api.dart';
 export 'contracts/panel_website_api.dart';
 export 'factory/panel_api_bundle.dart';

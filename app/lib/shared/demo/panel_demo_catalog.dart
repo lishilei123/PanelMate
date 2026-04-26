@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/panel/models/server_connection_profile.dart';
 import '../../core/panel/runtime/panel_live_overview_data.dart';
 import '../../core/panel/runtime/panel_server_runtime_state.dart';
+import '../formatters/panel_value_formatters.dart';
 
 enum PanelServerHealth {
   healthy,
@@ -51,6 +52,8 @@ class PanelServerSnapshot {
     required this.diskUsage,
     required this.networkInText,
     required this.networkOutText,
+    required this.networkTotalInText,
+    required this.networkTotalOutText,
     required this.loadText,
     required this.ipLabel,
     required this.lastSyncedAt,
@@ -66,6 +69,8 @@ class PanelServerSnapshot {
   final double diskUsage;
   final String networkInText;
   final String networkOutText;
+  final String networkTotalInText;
+  final String networkTotalOutText;
   final String loadText;
   final String ipLabel;
   final DateTime lastSyncedAt;
@@ -124,6 +129,8 @@ class PanelDemoCatalog {
       diskUsage: diskUsage,
       networkInText: '${60 + seed % 220} KB/s',
       networkOutText: '${40 + (seed ~/ 7) % 180} KB/s',
+      networkTotalInText: '${8 + seed % 90} GB',
+      networkTotalOutText: '${4 + (seed ~/ 9) % 50} GB',
       loadText: '${(0.5 + (seed % 22) / 10).toStringAsFixed(1)} / 4c',
       ipLabel: runtime?.hasError == true
           ? server.baseUrl
@@ -131,7 +138,7 @@ class PanelDemoCatalog {
       lastSyncedAt:
           runtime?.syncedAt ?? now.subtract(Duration(minutes: syncMinutes)),
       uptimeText: '${9 + seed % 46} 天',
-      groupLabel: server.tags.isNotEmpty ? server.tags.first : 'V2 集群',
+      groupLabel: server.tags.isNotEmpty ? server.tags.first : '',
     );
   }
 
@@ -153,13 +160,15 @@ class PanelDemoCatalog {
       diskUsage: overview.diskUsedPercent,
       networkInText: _formatRate(overview.netBytesRecvPerSecond),
       networkOutText: _formatRate(overview.netBytesSentPerSecond),
+      networkTotalInText: PanelValueFormatters.bytes(overview.netBytesRecv),
+      networkTotalOutText: PanelValueFormatters.bytes(overview.netBytesSent),
       loadText: '${overview.load1.toStringAsFixed(1)} / ${overview.cpuTotal}c',
       ipLabel: server.baseUrl,
       lastSyncedAt: syncedAt ?? overview.shotTime ?? DateTime.now(),
       uptimeText: overview.timeSinceUptime.isNotEmpty
           ? overview.timeSinceUptime
           : '${overview.uptime}s',
-      groupLabel: server.tags.isNotEmpty ? server.tags.first : 'V2 集群',
+      groupLabel: server.tags.isNotEmpty ? server.tags.first : '',
     );
   }
 

@@ -82,6 +82,43 @@ void main() {
       expect(result['cpuUsedPercent'], 0.5);
     });
 
+    test('sends DELETE requests through the REST transport', () async {
+      late http.Request capturedRequest;
+      final mockClient = MockClient((request) async {
+        capturedRequest = request;
+        return http.Response(
+          jsonEncode({
+            'code': 200,
+            'message': '',
+            'data': {'deleted': true},
+          }),
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      });
+
+      final client = PanelRestHttpClient(
+        server: const PanelServerConnectionProfile(
+          name: 'demo',
+          baseUrl: 'panel.example.com',
+          protocol: 'http',
+          port: 8443,
+          apiVersion: PanelApiVersion.v2,
+          authMode: PanelAuthMode.apiKey,
+          apiKey: 'raw-api-key',
+        ),
+        client: mockClient,
+      );
+
+      final result = await client.delete(
+        '/api/v2/core/settings/passkey/7',
+      );
+
+      expect(capturedRequest.method, 'DELETE');
+      expect(capturedRequest.url.path, '/api/v2/core/settings/passkey/7');
+      expect(result['deleted'], true);
+    });
+
     test('throws on panel business error inside 200 response', () async {
       final mockClient = MockClient((request) async {
         return http.Response(
