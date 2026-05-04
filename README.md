@@ -26,12 +26,13 @@ PanelMate 是一个基于 Flutter 的 1Panel 移动端客户端，目标是在�
 - 账号密码 / API Key 登录方式；账号密码登录兼容 1Panel V2 前端加密流程
 - EntranceCode 支持
 - 添加服务器前执行 V2 API 连接测试
+- 账号密码登录态失效后自动重新登录；若面板仍要求验证码，会再次弹窗输入
 - 概览页支持服务器搜索与 `全部 / 在线 / 离线` 筛选
 - 实时展示 CPU、内存、磁盘、负载、上下行速率等数据
 - 服务器详情页展示资源状态、最近操作和 V2 能力摘要
 - 容器、网站、应用、数据库、文件、备份模块入口
 - AI 工作台入口，用于承载后续智能巡检、日志问答和变更建议
-- 前台自动轮询设置，支持 `15s / 30s / 60s / 关闭`
+- 前台自动轮询设置，支持 `1s / 5s / 10s / 15s / 关闭`，默认 `10s`
 - 内置渐变主题与自定义调色板
 - 凭证使用安全存储，业务实时数据不落地
 
@@ -88,6 +89,8 @@ Windows 下如果需要绕过浏览器 CORS、自签名证书或安全入口预�
 
 Web 调试代理会同时处理登录 cookie：`Set-Cookie` 会镜像为 `X-PanelMate-Set-Cookie` 供前端读取，前端后续通过 `X-PanelMate-Cookie` 交回代理，由代理转成真实 `Cookie` 请求头。
 
+账号密码模式会缓存登录成功后的 `psession` / `pcsrftoken`。后续业务请求如果返回 HTTP `401` 或 1Panel 业务错误 `ErrNotLogin`，客户端会清理运行时凭据，重新走 `/core/auth/setting`、必要时弹出验证码、再请求 `/core/auth/login`，成功后用新的 Cookie 重试原请求一次。
+
 或手动启动：
 
 ```powershell
@@ -128,7 +131,7 @@ flutter build web
 - 当前是纯前端直连方案，不经过自建中转后端。
 - Web 环境依赖目标面板开放 CORS；否则需要使用本地调试代理。
 - 自签名证书可能影响浏览器联调。
-- 账号密码登录已支持 1Panel V2 的 `panel_public_key`、RSA + AES-CBC 加密、验证码、session cookie 与 CSRF token 流程；MFA 仍需后续补齐。
+- 账号密码登录已支持 1Panel V2 的 `panel_public_key`、RSA + AES-CBC 加密、验证码、session cookie、CSRF token 与登录态失效后的自动重登流程；MFA 仍需后续补齐。
 - iOS 正式打包需要 macOS / Xcode 环境。
 - `flutter_secure_storage` 在部分 WebAssembly dry run 场景会提示兼容问题，但不影响当前 Chrome/JS 构建运行。
 

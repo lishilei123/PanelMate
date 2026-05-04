@@ -5,7 +5,7 @@ PanelMate 是一个纯前端 Flutter 客户端，用来接入多个 `1Panel` 面
 ## 当前状态
 
 - 已支持多服务器接入，新增服务器时按 `V2 API` 进行连接测试
-- 已接通真实登录、概览、告警、操作日志等主链路；账号密码登录按 1Panel V2 前端加密与 session cookie 流程处理
+- 已接通真实登录、概览、告警、操作日志等主链路；账号密码登录按 1Panel V2 前端加密、验证码与 session cookie 流程处理
 - 容器、网站、应用、数据库、文件、备份页面已切到真实接口数据流
 - 首页与详情页会持续轮询实时数据，网速与 Top 进程展示为动态数据
 - 基础配置使用普通持久化保存，凭证信息使用安全存储
@@ -37,6 +37,7 @@ PanelMate 是一个纯前端 Flutter 客户端，用来接入多个 `1Panel` 面
   - 登录前读取 `panel_public_key`，密码使用 `RSA(AES key):IV:AES-CBC-PKCS7(password)` 格式提交
   - 面板要求验证码时弹窗显示验证码，输入后带 `captcha` / `captchaID` 继续登录；验证码错误会重新加载并重试
   - 登录成功后缓存 `psession` / `pcsrftoken`，后续请求自动携带 `Cookie` 与 `X-CSRF-Token`
+  - 后续业务请求返回 HTTP `401` 或 `ErrNotLogin` 时，会清理运行时凭据并重新登录；如果重新登录仍需要验证码，会再次弹窗输入，成功后用新 Cookie 重试原请求一次
 - 概览
   - `V2 /dashboard/current/:ioOption/:netOption`
 - 告警
@@ -84,7 +85,7 @@ Windows 下推荐：
 
 - UI 中仍然填写真实的 1Panel 地址
 - Web 调试时请求会自动走本地代理
-- 本地代理会把 `Set-Cookie` 镜像为 Web 端可读取的 `X-PanelMate-Set-Cookie`，并把 `X-PanelMate-Cookie` 转回真实 `Cookie`，用于账号密码登录的 `panel_public_key`、session cookie 与 CSRF token 流程
+- 本地代理会把 `Set-Cookie` 镜像为 Web 端可读取的 `X-PanelMate-Set-Cookie`，并把 `X-PanelMate-Cookie` 转回真实 `Cookie`，用于账号密码登录的 `panel_public_key`、session cookie、CSRF token 与自动重登流程
 - 如果启动失败，先看 `1Panel Proxy` 窗口日志
 
 ### 手动启动
