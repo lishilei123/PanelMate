@@ -253,6 +253,15 @@ class _ServerDetailPageState extends State<ServerDetailPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(runtime!.message!),
+                    if (runtime.hasLiveData) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        '当前页面保留上次成功同步的数据，实时状态以重新同步成功后为准。',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFF647181),
+                            ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -537,6 +546,20 @@ class _HeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasError = runtime?.hasError == true;
+    final hasSyncedData = snapshot.lastSyncedAt != null;
+    final uptimeLabel = hasError && snapshot.hasLiveData ? '上次运行时长' : '运行时长';
+    final syncLabel = !hasSyncedData
+        ? '同步状态'
+        : hasError
+            ? '最后成功同步'
+            : '最后同步';
+    final syncValue = hasSyncedData
+        ? PanelValueFormatters.relativeTime(snapshot.lastSyncedAt!)
+        : runtime?.isLoading == true
+            ? '同步中'
+            : '尚未成功';
+
     return PanelCard(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -597,16 +620,15 @@ class _HeroCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _HeroMetric(
-                  label: '运行时长',
+                  label: uptimeLabel,
                   value: snapshot.uptimeText,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _HeroMetric(
-                  label: '最后同步',
-                  value:
-                      PanelValueFormatters.relativeTime(snapshot.lastSyncedAt),
+                  label: syncLabel,
+                  value: syncValue,
                 ),
               ),
             ],

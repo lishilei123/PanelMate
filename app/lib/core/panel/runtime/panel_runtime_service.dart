@@ -5,6 +5,7 @@ import '../probe/panel_version_probe.dart';
 import '../probe/panel_version_probe_result.dart';
 import 'panel_api_session.dart';
 import 'panel_live_overview_data.dart';
+import 'panel_login_captcha.dart';
 import 'panel_server_runtime_state.dart';
 
 class PanelRuntimeService {
@@ -16,8 +17,12 @@ class PanelRuntimeService {
   Future<PanelServerRuntimeState> loadRuntime(
     PanelServerConnectionProfile server, {
     PanelLiveOverviewData? previousOverview,
+    PanelLoginCaptchaResolver? captchaResolver,
   }) async {
-    final session = await _sessionFactory.createSession(server);
+    final sessionFactory = captchaResolver == null
+        ? _sessionFactory
+        : PanelApiSessionFactory(captchaResolver: captchaResolver);
+    final session = await sessionFactory.createSession(server);
     final bundle = session.bundle;
 
     final current = await bundle.overview.loadCurrent(
@@ -34,17 +39,27 @@ class PanelRuntimeService {
   }
 
   Future<PanelVersionProbeResult> probeServer(
-    PanelServerConnectionProfile server,
-  ) async {
+    PanelServerConnectionProfile server, {
+    PanelLoginCaptchaResolver? captchaResolver,
+  }) async {
     String? errorMessage;
     var selectedOk = false;
 
     try {
-      selectedOk = await _canConnect(server);
+      selectedOk = await _canConnect(
+        server,
+        captchaResolver: captchaResolver,
+      );
     } on PanelApiException catch (error) {
-      errorMessage = PanelErrorMessageResolver.resolve(error);
+      errorMessage = PanelErrorMessageResolver.resolve(
+        error,
+        authMode: server.authMode,
+      );
     } catch (error) {
-      errorMessage = PanelErrorMessageResolver.resolve(error);
+      errorMessage = PanelErrorMessageResolver.resolve(
+        error,
+        authMode: server.authMode,
+      );
     }
 
     return PanelVersionProbe.fromSelectedVersion(
@@ -54,8 +69,14 @@ class PanelRuntimeService {
     );
   }
 
-  Future<bool> _canConnect(PanelServerConnectionProfile server) async {
-    await loadRuntime(server);
+  Future<bool> _canConnect(
+    PanelServerConnectionProfile server, {
+    PanelLoginCaptchaResolver? captchaResolver,
+  }) async {
+    await loadRuntime(
+      server,
+      captchaResolver: captchaResolver,
+    );
     return true;
   }
 }

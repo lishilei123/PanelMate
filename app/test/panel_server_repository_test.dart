@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:panelmate/core/panel/models/api_version.dart';
 import 'package:panelmate/core/panel/models/compatibility_flags.dart';
 import 'package:panelmate/core/panel/models/server_connection_profile.dart';
+import 'package:panelmate/core/panel/storage/panel_auth_data_store.dart';
 import 'package:panelmate/core/panel/storage/panel_credential_store.dart';
 import 'package:panelmate/core/panel/storage/panel_server_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -144,6 +145,43 @@ void main() {
       expect(secureEntries.length, 1);
       expect(secureEntries.values.single.contains('key-a'), true);
       expect(secureEntries.values.single.contains('key-b'), false);
+    });
+
+    test('removes stale cached auth data for deleted servers', () async {
+      const serverA = PanelServerConnectionProfile(
+        name: 'A',
+        baseUrl: 'a.example.com',
+        protocol: 'http',
+        port: 8443,
+        apiVersion: PanelApiVersion.v2,
+        authMode: PanelAuthMode.accountPassword,
+        username: 'admin-a',
+        password: 'secret-a',
+      );
+      const serverB = PanelServerConnectionProfile(
+        name: 'B',
+        baseUrl: 'b.example.com',
+        protocol: 'http',
+        port: 8443,
+        apiVersion: PanelApiVersion.v2,
+        authMode: PanelAuthMode.accountPassword,
+        username: 'admin-b',
+        password: 'secret-b',
+      );
+      final authDataStore = PanelAuthDataStore(
+        credentialStore: credentialStore,
+      );
+
+      await repository.saveServers(
+        const <PanelServerConnectionProfile>[serverA, serverB],
+      );
+      await authDataStore.write(serverA, 'token-a');
+      await authDataStore.write(serverB, 'token-b');
+      await repository
+          .saveServers(const <PanelServerConnectionProfile>[serverA]);
+
+      expect((await authDataStore.read(serverA))?.token, 'token-a');
+      expect(await authDataStore.read(serverB), isNull);
     });
   });
 }

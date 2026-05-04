@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/server_connection_profile.dart';
+import 'panel_auth_data_store.dart';
 import 'panel_credential_store.dart';
 
 class PanelServerRepository {
@@ -88,6 +89,10 @@ class PanelServerRepository {
       }
       await _credentialStore.delete(key);
     }
+
+    await PanelAuthDataStore(
+      credentialStore: _credentialStore,
+    ).deleteStaleForServers(servers);
   }
 
   String _credentialStorageKeyFor(PanelServerConnectionProfile server) {

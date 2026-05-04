@@ -12,7 +12,7 @@ void main() {
       SharedPreferences.setMockInitialValues(<String, Object>{});
     });
 
-    test('returns 30s by default when nothing is stored', () async {
+    test('returns 10s by default when nothing is stored', () async {
       expect(
         await repository.loadPollingInterval(),
         PanelAppSettingsRepository.defaultPollingInterval,
@@ -20,9 +20,9 @@ void main() {
     });
 
     test('saves and restores a supported polling interval', () async {
-      await repository.savePollingInterval('60s');
+      await repository.savePollingInterval('10s');
 
-      expect(await repository.loadPollingInterval(), '60s');
+      expect(await repository.loadPollingInterval(), '10s');
     });
 
     test('returns default gradient theme when nothing is stored', () async {

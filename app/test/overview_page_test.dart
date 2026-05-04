@@ -140,8 +140,8 @@ Map<String, Object> _livePayload({
   required int netBytesSent,
 }) {
   return <String, Object>{
-    'cpuUsedPercent': 0.2,
-    'memoryUsedPercent': 0.1,
+    'cpuUsedPercent': 20,
+    'memoryUsedPercent': 10,
     'cpuTotal': 4,
     'memoryTotal': 17179869184,
     'memoryUsed': 8589934592,
@@ -156,7 +156,7 @@ Map<String, Object> _livePayload({
     'diskData': const <Map<String, Object>>[
       {
         'path': '/',
-        'usedPercent': 0.14,
+        'usedPercent': 14,
       },
     ],
   };

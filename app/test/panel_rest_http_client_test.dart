@@ -119,6 +119,114 @@ void main() {
       expect(result['deleted'], true);
     });
 
+    test('stores set-cookie values and sends them on later requests', () async {
+      final capturedRequests = <http.Request>[];
+      final mockClient = MockClient((request) async {
+        capturedRequests.add(request);
+        if (request.url.path == '/api/v2/core/auth/login') {
+          return http.Response(
+            jsonEncode({
+              'code': 200,
+              'message': '',
+              'data': {'ok': true},
+            }),
+            200,
+            headers: {
+              'content-type': 'application/json',
+              'set-cookie':
+                  'psession=session-a; Path=/; HttpOnly, pcsrftoken=csrf-a; Path=/',
+            },
+          );
+        }
+
+        return http.Response(
+          jsonEncode({
+            'code': 200,
+            'message': '',
+            'data': {'ok': true},
+          }),
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      });
+
+      final client = PanelRestHttpClient(
+        server: const PanelServerConnectionProfile(
+          name: 'demo',
+          baseUrl: 'panel.example.com',
+          protocol: 'http',
+          port: 8443,
+          apiVersion: PanelApiVersion.v2,
+          authMode: PanelAuthMode.accountPassword,
+          entranceCode: 'door',
+        ),
+        client: mockClient,
+      );
+
+      await client.post('/api/v2/core/auth/login', body: {'ok': true});
+      await client.post('/api/v2/containers/search', body: {'page': 1});
+
+      expect(capturedRequests.first.headers['EntranceCode'], 'ZG9vcg==');
+      expect(capturedRequests.first.headers['1Panel-Token'], isNull);
+      expect(capturedRequests.first.headers['1Panel-Timestamp'], isNull);
+      expect(capturedRequests.last.headers['Cookie'],
+          contains('psession=session-a'));
+      expect(capturedRequests.last.headers['Cookie'],
+          contains('pcsrftoken=csrf-a'));
+      expect(capturedRequests.last.headers['X-CSRF-Token'], 'csrf-a');
+      expect(capturedRequests.last.headers['1Panel-Token'], isNull);
+      expect(capturedRequests.last.headers['1Panel-Timestamp'], isNull);
+    });
+
+    test('stores proxy mirrored set-cookie values', () async {
+      final capturedRequests = <http.Request>[];
+      final mockClient = MockClient((request) async {
+        capturedRequests.add(request);
+        if (request.url.path == '/api/v2/core/auth/setting') {
+          return http.Response(
+            jsonEncode({
+              'code': 200,
+              'message': '',
+              'data': {'needCaptcha': false},
+            }),
+            200,
+            headers: {
+              'content-type': 'application/json',
+              'x-panelmate-set-cookie':
+                  'panel_public_key=public-key-a; Path=/; Max-Age=604800',
+            },
+          );
+        }
+
+        return http.Response(
+          jsonEncode({
+            'code': 200,
+            'message': '',
+            'data': {'ok': true},
+          }),
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      });
+
+      final client = PanelRestHttpClient(
+        server: const PanelServerConnectionProfile(
+          name: 'demo',
+          baseUrl: 'panel.example.com',
+          protocol: 'http',
+          port: 8443,
+          apiVersion: PanelApiVersion.v2,
+          authMode: PanelAuthMode.accountPassword,
+        ),
+        client: mockClient,
+      );
+
+      await client.get('/api/v2/core/auth/setting');
+
+      expect(client.cookieValue('panel_public_key'), 'public-key-a');
+      expect(capturedRequests.single.headers['Cookie'], isNull);
+    });
+
     test('throws on panel business error inside 200 response', () async {
       final mockClient = MockClient((request) async {
         return http.Response(

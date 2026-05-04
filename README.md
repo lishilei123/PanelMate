@@ -23,7 +23,7 @@ PanelMate 是一个基于 Flutter 的 1Panel 移动端客户端，目标是在�
 ## 功能特性
 
 - 多服务器接入与本地管理
-- 账号密码 / API Key 登录方式
+- 账号密码 / API Key 登录方式；账号密码登录兼容 1Panel V2 前端加密流程
 - EntranceCode 支持
 - 添加服务器前执行 V2 API 连接测试
 - 概览页支持服务器搜索与 `全部 / 在线 / 离线` 筛选
@@ -40,6 +40,7 @@ PanelMate 是一个基于 Flutter 的 1Panel 移动端客户端，目标是在�
 - Flutter / Dart
 - Material 3
 - `http`
+- `encrypt` / `pointycastle`
 - `shared_preferences`
 - `flutter_secure_storage`
 - 1Panel V2 REST API
@@ -85,6 +86,8 @@ Windows 下如果需要绕过浏览器 CORS、自签名证书或安全入口预�
 .\start-web-debug.cmd
 ```
 
+Web 调试代理会同时处理登录 cookie：`Set-Cookie` 会镜像为 `X-PanelMate-Set-Cookie` 供前端读取，前端后续通过 `X-PanelMate-Cookie` 交回代理，由代理转成真实 `Cookie` 请求头。
+
 或手动启动：
 
 ```powershell
@@ -125,6 +128,7 @@ flutter build web
 - 当前是纯前端直连方案，不经过自建中转后端。
 - Web 环境依赖目标面板开放 CORS；否则需要使用本地调试代理。
 - 自签名证书可能影响浏览器联调。
+- 账号密码登录已支持 1Panel V2 的 `panel_public_key`、RSA + AES-CBC 加密、验证码、session cookie 与 CSRF token 流程；MFA 仍需后续补齐。
 - iOS 正式打包需要 macOS / Xcode 环境。
 - `flutter_secure_storage` 在部分 WebAssembly dry run 场景会提示兼容问题，但不影响当前 Chrome/JS 构建运行。
 

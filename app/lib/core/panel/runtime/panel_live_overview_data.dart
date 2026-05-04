@@ -98,9 +98,9 @@ class PanelLiveOverviewData {
     );
 
     return PanelLiveOverviewData(
-      cpuUsedPercent: _normalizePercent(json['cpuUsedPercent']),
-      memoryUsedPercent: _normalizePercent(json['memoryUsedPercent']),
-      diskUsedPercent: _normalizePercent(rootDisk['usedPercent']),
+      cpuUsedPercent: _normalizeApiPercent(json['cpuUsedPercent']),
+      memoryUsedPercent: _normalizeApiPercent(json['memoryUsedPercent']),
+      diskUsedPercent: _normalizeApiPercent(rootDisk['usedPercent']),
       cpuTotal: _toInt(json['cpuTotal']),
       memoryTotal: _toInt(json['memoryTotal']),
       memoryUsed: _toInt(json['memoryUsed']),
@@ -131,12 +131,11 @@ class PanelLiveOverviewData {
     );
   }
 
-  static double _normalizePercent(Object? value) {
+  static double _normalizeApiPercent(Object? value) {
     final number = _toDouble(value);
-    if (number > 1) {
-      return (number / 100).clamp(0.0, 1.0);
-    }
-    return number.clamp(0.0, 1.0);
+    // 1Panel dashboard percent fields use a 0..100 scale, including values
+    // below 1 such as 0.5 for 0.5%.
+    return (number / 100).clamp(0.0, 1.0);
   }
 
   static double _toDouble(Object? value) {

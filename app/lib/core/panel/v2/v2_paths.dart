@@ -2,6 +2,7 @@ class V2Paths {
   const V2Paths._();
 
   static const captcha = '/api/v2/core/auth/captcha';
+  static const authSetting = '/api/v2/core/auth/setting';
   static const login = '/api/v2/core/auth/login';
   static const mfaLogin = '/api/v2/core/auth/mfalogin';
   static const logout = '/api/v2/core/auth/logout';

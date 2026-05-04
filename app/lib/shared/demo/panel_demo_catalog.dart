@@ -47,6 +47,7 @@ class PanelServerSnapshot {
     required this.server,
     required this.health,
     required this.isOnline,
+    required this.hasLiveData,
     required this.cpuUsage,
     required this.memoryUsage,
     required this.diskUsage,
@@ -64,6 +65,7 @@ class PanelServerSnapshot {
   final PanelServerConnectionProfile server;
   final PanelServerHealth health;
   final bool isOnline;
+  final bool hasLiveData;
   final double cpuUsage;
   final double memoryUsage;
   final double diskUsage;
@@ -73,7 +75,7 @@ class PanelServerSnapshot {
   final String networkTotalOutText;
   final String loadText;
   final String ipLabel;
-  final DateTime lastSyncedAt;
+  final DateTime? lastSyncedAt;
   final String uptimeText;
   final String groupLabel;
 }
@@ -90,56 +92,11 @@ class PanelDemoCatalog {
         server,
         runtime!.overview!,
         syncedAt: runtime.syncedAt,
+        isOnline: runtime.hasError != true,
       );
     }
 
-    final seed = _seedFor(server);
-    final isOnline = runtime?.hasError != true && seed % 10 != 0;
-    final health = !isOnline
-        ? PanelServerHealth.offline
-        : seed % 7 == 0
-            ? PanelServerHealth.critical
-            : seed % 4 == 0
-                ? PanelServerHealth.warning
-                : PanelServerHealth.healthy;
-
-    final cpuBase = 0.24 + (seed % 41) / 100;
-    final memoryBase = 0.32 + ((seed ~/ 3) % 38) / 100;
-    final diskBase = 0.41 + ((seed ~/ 5) % 34) / 100;
-
-    final cpuUsage = _normalize(
-      isOnline ? cpuBase + _healthLift(health, 0.22, 0.34) : 0.0,
-    );
-    final memoryUsage = _normalize(
-      isOnline ? memoryBase + _healthLift(health, 0.16, 0.24) : 0.0,
-    );
-    final diskUsage = _normalize(
-      isOnline ? diskBase + _healthLift(health, 0.08, 0.15) : 0.0,
-    );
-
-    final now = DateTime.now();
-    final syncMinutes = !isOnline ? 30 + seed % 120 : 2 + seed % 18;
-
-    return PanelServerSnapshot(
-      server: server,
-      health: health,
-      isOnline: isOnline,
-      cpuUsage: cpuUsage,
-      memoryUsage: memoryUsage,
-      diskUsage: diskUsage,
-      networkInText: '${60 + seed % 220} KB/s',
-      networkOutText: '${40 + (seed ~/ 7) % 180} KB/s',
-      networkTotalInText: '${8 + seed % 90} GB',
-      networkTotalOutText: '${4 + (seed ~/ 9) % 50} GB',
-      loadText: '${(0.5 + (seed % 22) / 10).toStringAsFixed(1)} / 4c',
-      ipLabel: runtime?.hasError == true
-          ? server.baseUrl
-          : '10.${(seed % 180) + 10}.${((seed ~/ 11) % 180) + 10}.${((seed ~/ 19) % 180) + 10}',
-      lastSyncedAt:
-          runtime?.syncedAt ?? now.subtract(Duration(minutes: syncMinutes)),
-      uptimeText: '${9 + seed % 46} 天',
-      groupLabel: server.tags.isNotEmpty ? server.tags.first : '',
-    );
+    return _emptySnapshot(server, runtime: runtime);
   }
 
   static String percent(double value) => '${(value * 100).round()}%';
@@ -148,13 +105,16 @@ class PanelDemoCatalog {
     PanelServerConnectionProfile server,
     PanelLiveOverviewData overview, {
     DateTime? syncedAt,
+    bool isOnline = true,
   }) {
-    final health = _healthFromLiveData(overview);
+    final health =
+        isOnline ? _healthFromLiveData(overview) : PanelServerHealth.offline;
 
     return PanelServerSnapshot(
       server: server,
       health: health,
-      isOnline: true,
+      isOnline: isOnline,
+      hasLiveData: true,
       cpuUsage: overview.cpuUsedPercent,
       memoryUsage: overview.memoryUsedPercent,
       diskUsage: overview.diskUsedPercent,
@@ -164,7 +124,7 @@ class PanelDemoCatalog {
       networkTotalOutText: PanelValueFormatters.bytes(overview.netBytesSent),
       loadText: '${overview.load1.toStringAsFixed(1)} / ${overview.cpuTotal}c',
       ipLabel: server.baseUrl,
-      lastSyncedAt: syncedAt ?? overview.shotTime ?? DateTime.now(),
+      lastSyncedAt: syncedAt ?? overview.shotTime ?? overview.sampledAt,
       uptimeText: overview.timeSinceUptime.isNotEmpty
           ? overview.timeSinceUptime
           : '${overview.uptime}s',
@@ -172,29 +132,28 @@ class PanelDemoCatalog {
     );
   }
 
-  static int _seedFor(PanelServerConnectionProfile server) {
-    final raw =
-        '${server.name}|${server.baseUrl}|${server.port}|${server.apiVersion.name}|${server.authMode.name}';
-    var value = 17;
-    for (final codeUnit in raw.codeUnits) {
-      value = (value * 31 + codeUnit) % 100000;
-    }
-    return value;
-  }
-
-  static double _normalize(double value) => value.clamp(0.0, 0.98).toDouble();
-
-  static double _healthLift(
-    PanelServerHealth health,
-    double warningLift,
-    double criticalLift,
-  ) {
-    return switch (health) {
-      PanelServerHealth.healthy => 0.0,
-      PanelServerHealth.warning => warningLift,
-      PanelServerHealth.critical => criticalLift,
-      PanelServerHealth.offline => 0.0,
-    };
+  static PanelServerSnapshot _emptySnapshot(
+    PanelServerConnectionProfile server, {
+    PanelServerRuntimeState? runtime,
+  }) {
+    return PanelServerSnapshot(
+      server: server,
+      health: PanelServerHealth.offline,
+      isOnline: false,
+      hasLiveData: false,
+      cpuUsage: 0,
+      memoryUsage: 0,
+      diskUsage: 0,
+      networkInText: '--',
+      networkOutText: '--',
+      networkTotalInText: '--',
+      networkTotalOutText: '--',
+      loadText: '--',
+      ipLabel: server.baseUrl,
+      lastSyncedAt: runtime?.syncedAt,
+      uptimeText: '--',
+      groupLabel: server.tags.isNotEmpty ? server.tags.first : '',
+    );
   }
 
   static PanelServerHealth _healthFromLiveData(PanelLiveOverviewData overview) {

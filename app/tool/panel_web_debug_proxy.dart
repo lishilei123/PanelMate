@@ -16,10 +16,13 @@ const _hopByHopHeaders = <String>{
   'content-length',
 };
 
+const _panelMateCookieHeader = 'x-panelmate-cookie';
+const _panelMateSetCookieHeader = 'x-panelmate-set-cookie';
+
 Future<void> main() async {
   final host = Platform.environment['PANEL_PROXY_HOST'] ?? '127.0.0.1';
-  final port = int.tryParse(Platform.environment['PANEL_PROXY_PORT'] ?? '8787') ??
-      8787;
+  final port =
+      int.tryParse(Platform.environment['PANEL_PROXY_PORT'] ?? '8787') ?? 8787;
   final allowBadCerts =
       (Platform.environment['PANEL_PROXY_ALLOW_BAD_CERTS'] ?? 'false')
               .toLowerCase() ==
@@ -126,9 +129,9 @@ Future<void> _handleRequest(
 void _applyCors(HttpRequest request) {
   final response = request.response;
   final origin = request.headers.value('origin') ?? '*';
-  final requestHeaders =
-      request.headers.value('access-control-request-headers') ??
-          'Accept, Content-Type, EntranceCode, 1Panel-Timestamp, 1Panel-Token';
+  final requestHeaders = request.headers
+          .value('access-control-request-headers') ??
+      'Accept, Content-Type, EntranceCode, 1Panel-Timestamp, 1Panel-Token, X-CSRF-Token, X-PanelMate-Cookie';
   final requestMethod =
       request.headers.value('access-control-request-method') ??
           'GET, POST, PUT, PATCH, DELETE, OPTIONS';
@@ -137,15 +140,24 @@ void _applyCors(HttpRequest request) {
     ..set(HttpHeaders.accessControlAllowOriginHeader, origin)
     ..set(HttpHeaders.accessControlAllowMethodsHeader, requestMethod)
     ..set(HttpHeaders.accessControlAllowHeadersHeader, requestHeaders)
-    ..set(HttpHeaders.accessControlExposeHeadersHeader, '*')
+    ..set(
+      HttpHeaders.accessControlExposeHeadersHeader,
+      'Content-Type, X-PanelMate-Set-Cookie',
+    )
     ..set(HttpHeaders.accessControlAllowCredentialsHeader, 'false')
     ..set(HttpHeaders.varyHeader, 'Origin');
 }
 
 void _copyRequestHeaders(HttpHeaders source, HttpHeaders destination) {
+  final forwardedCookie = source.value(_panelMateCookieHeader);
+  if (forwardedCookie != null && forwardedCookie.trim().isNotEmpty) {
+    destination.set(HttpHeaders.cookieHeader, forwardedCookie);
+  }
+
   source.forEach((name, values) {
     final lowerName = name.toLowerCase();
-    if (_hopByHopHeaders.contains(lowerName)) {
+    if (_hopByHopHeaders.contains(lowerName) ||
+        lowerName == _panelMateCookieHeader) {
       return;
     }
     for (final value in values) {
@@ -157,6 +169,13 @@ void _copyRequestHeaders(HttpHeaders source, HttpHeaders destination) {
 void _copyResponseHeaders(HttpHeaders source, HttpHeaders destination) {
   source.forEach((name, values) {
     final lowerName = name.toLowerCase();
+    if (lowerName == HttpHeaders.setCookieHeader) {
+      for (final value in values) {
+        destination.add(_panelMateSetCookieHeader, value);
+      }
+      return;
+    }
+
     if (_hopByHopHeaders.contains(lowerName) ||
         lowerName.startsWith('access-control-')) {
       return;

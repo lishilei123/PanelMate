@@ -13,16 +13,17 @@ class PanelAppSettingsRepository {
       'panelmate.app_settings.custom_gradient.secondary';
   static const String customGradientTertiaryStorageKey =
       'panelmate.app_settings.custom_gradient.tertiary';
-  static const String defaultPollingInterval = '30s';
+  static const String defaultPollingInterval = '10s';
   static const String defaultGradientThemeId = 'mint';
   static const int defaultCustomGradientPrimaryValue = 0xFF168F8F;
   static const int defaultCustomGradientSecondaryValue = 0xFF55A8D7;
   static const int defaultCustomGradientTertiaryValue = 0xFFFF9C6E;
   static const String disabledPollingInterval = '关闭';
   static const List<String> supportedPollingIntervals = <String>[
+    '1s',
+    '5s',
+    '10s',
     '15s',
-    '30s',
-    '60s',
     disabledPollingInterval,
   ];
   static const List<String> supportedGradientThemeIds = <String>[
@@ -152,16 +153,18 @@ class PanelAppSettingsRepository {
 
   static Duration? durationForPollingInterval(String? value) {
     switch (normalizePollingInterval(value)) {
+      case '1s':
+        return const Duration(seconds: 1);
+      case '5s':
+        return const Duration(seconds: 5);
+      case '10s':
+        return const Duration(seconds: 10);
       case '15s':
         return const Duration(seconds: 15);
-      case '30s':
-        return const Duration(seconds: 30);
-      case '60s':
-        return const Duration(seconds: 60);
       case disabledPollingInterval:
         return null;
       default:
-        return const Duration(seconds: 30);
+        return const Duration(seconds: 10);
     }
   }
 }

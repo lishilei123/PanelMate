@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/network/panel_endpoint_parser.dart';
@@ -6,6 +9,7 @@ import '../../../core/panel/models/compatibility_flags.dart';
 import '../../../core/panel/models/panel_error_message_resolver.dart';
 import '../../../core/panel/models/server_connection_profile.dart';
 import '../../../core/panel/probe/panel_version_probe_result.dart';
+import '../../../core/panel/runtime/panel_login_captcha.dart';
 import '../../../shared/widgets/panel_card.dart';
 import '../../../shared/widgets/status_chip.dart';
 import '../application/server_connection_tester.dart';
@@ -101,7 +105,10 @@ class _AddServerPageState extends State<AddServerPage> {
     });
 
     try {
-      final result = await ServerConnectionTester.test(_buildProfile());
+      final result = await ServerConnectionTester.test(
+        _buildProfile(),
+        captchaResolver: _resolveLoginCaptcha,
+      );
       if (!mounted) {
         return;
       }
@@ -126,6 +133,19 @@ class _AddServerPageState extends State<AddServerPage> {
         setState(() => _isTesting = false);
       }
     }
+  }
+
+  Future<String?> _resolveLoginCaptcha(
+    PanelLoginCaptchaChallenge challenge,
+  ) {
+    if (!mounted) {
+      return Future<String?>.value();
+    }
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _CaptchaInputDialog(challenge: challenge),
+    );
   }
 
   void _submit() {
@@ -575,6 +595,156 @@ class _AddServerPageState extends State<AddServerPage> {
       return '必填';
     }
     return null;
+  }
+}
+
+class _CaptchaInputDialog extends StatefulWidget {
+  const _CaptchaInputDialog({
+    required this.challenge,
+  });
+
+  final PanelLoginCaptchaChallenge challenge;
+
+  @override
+  State<_CaptchaInputDialog> createState() => _CaptchaInputDialogState();
+}
+
+class _CaptchaInputDialogState extends State<_CaptchaInputDialog> {
+  final _controller = TextEditingController();
+  String? _fieldError;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final errorMessage = widget.challenge.errorMessage;
+
+    return AlertDialog(
+      title: Text(widget.challenge.attempt > 1 ? '重新输入验证码' : '输入验证码'),
+      content: SizedBox(
+        width: 360,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (errorMessage != null) ...[
+              Text(
+                errorMessage,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.error,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            Container(
+              width: double.infinity,
+              height: 96,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF6FAFA),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFD9E6E6)),
+              ),
+              child: _CaptchaImage(imagePath: widget.challenge.imagePath),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: '验证码',
+                errorText: _fieldError,
+              ),
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _submit(),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: _submit,
+          child: const Text('继续登录'),
+        ),
+      ],
+    );
+  }
+
+  void _submit() {
+    final value = _controller.text.trim();
+    if (value.isEmpty) {
+      setState(() => _fieldError = '请输入验证码');
+      return;
+    }
+    Navigator.of(context).pop(value);
+  }
+}
+
+class _CaptchaImage extends StatelessWidget {
+  const _CaptchaImage({
+    required this.imagePath,
+  });
+
+  final String imagePath;
+
+  @override
+  Widget build(BuildContext context) {
+    final bytes = _decodeCaptchaBytes(imagePath);
+    if (bytes != null) {
+      return Image.memory(
+        bytes,
+        fit: BoxFit.contain,
+        gaplessPlayback: true,
+        filterQuality: FilterQuality.none,
+      );
+    }
+
+    final uri = Uri.tryParse(imagePath.trim());
+    if (uri != null && uri.hasScheme) {
+      return Image.network(
+        imagePath.trim(),
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return const Text('验证码图片加载失败');
+        },
+      );
+    }
+
+    return const Text('验证码图片无法显示，请重试');
+  }
+
+  Uint8List? _decodeCaptchaBytes(String value) {
+    var normalized = value.trim();
+    try {
+      normalized = Uri.decodeComponent(normalized);
+    } on FormatException {
+      // Keep the original value if it is not URL encoded.
+    }
+
+    final commaIndex = normalized.indexOf(',');
+    if (normalized.startsWith('data:image') && commaIndex >= 0) {
+      normalized = normalized.substring(commaIndex + 1);
+    }
+
+    normalized = normalized.replaceAll(RegExp(r'\s'), '');
+    if (normalized.isEmpty) {
+      return null;
+    }
+
+    try {
+      return base64Decode(normalized);
+    } on FormatException {
+      return null;
+    }
   }
 }
 

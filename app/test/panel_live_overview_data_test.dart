@@ -3,6 +3,24 @@ import 'package:panelmate/core/panel/runtime/panel_live_overview_data.dart';
 
 void main() {
   group('PanelLiveOverviewData', () {
+    test('normalizes dashboard percentage values from the API 0 to 100 scale',
+        () {
+      final current = PanelLiveOverviewData.fromMap(
+        _payload(
+          shotTime: '2026-04-06T10:00:00Z',
+          netBytesRecv: 2048,
+          netBytesSent: 1024,
+          cpuUsedPercent: 0.5,
+          memoryUsedPercent: 41,
+          diskUsedPercent: 63,
+        ),
+      );
+
+      expect(current.cpuUsedPercent, closeTo(0.005, 0.0001));
+      expect(current.memoryUsedPercent, closeTo(0.41, 0.0001));
+      expect(current.diskUsedPercent, closeTo(0.63, 0.0001));
+    });
+
     test('derives network speed and top processes from consecutive samples',
         () {
       final previous = PanelLiveOverviewData.fromMap(_payload(
@@ -67,12 +85,15 @@ Map<String, Object> _payload({
   required String shotTime,
   required int netBytesRecv,
   required int netBytesSent,
+  num cpuUsedPercent = 52,
+  num memoryUsedPercent = 41,
+  num diskUsedPercent = 63,
   List<Map<String, Object>> topCpuItems = const <Map<String, Object>>[],
   List<Map<String, Object>> topMemItems = const <Map<String, Object>>[],
 }) {
   return <String, Object>{
-    'cpuUsedPercent': 0.52,
-    'memoryUsedPercent': 0.41,
+    'cpuUsedPercent': cpuUsedPercent,
+    'memoryUsedPercent': memoryUsedPercent,
     'cpuTotal': 4,
     'memoryTotal': 17179869184,
     'memoryUsed': 8589934592,
@@ -84,10 +105,10 @@ Map<String, Object> _payload({
     'uptime': 86400,
     'timeSinceUptime': '1 day',
     'shotTime': shotTime,
-    'diskData': const <Map<String, Object>>[
+    'diskData': <Map<String, Object>>[
       {
         'path': '/',
-        'usedPercent': 0.63,
+        'usedPercent': diskUsedPercent,
       },
     ],
     'topCPUItems': topCpuItems,

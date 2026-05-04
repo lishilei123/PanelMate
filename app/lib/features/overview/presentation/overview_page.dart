@@ -92,8 +92,11 @@ class _OverviewPageState extends State<OverviewPage> {
         if (byHealth != 0) {
           return byHealth;
         }
-        return right.snapshot.lastSyncedAt
-            .compareTo(left.snapshot.lastSyncedAt);
+        final leftSyncedAt = left.snapshot.lastSyncedAt ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        final rightSyncedAt = right.snapshot.lastSyncedAt ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        return rightSyncedAt.compareTo(leftSyncedAt);
       });
 
     final hasSearchText = query.isNotEmpty;
@@ -530,7 +533,9 @@ class _ServerCard extends StatelessWidget {
                 else
                   Expanded(
                     child: Text(
-                      '离线 ${PanelValueFormatters.relativeTime(snapshot.lastSyncedAt)}',
+                      snapshot.lastSyncedAt == null
+                          ? '尚未成功同步'
+                          : '离线 ${PanelValueFormatters.relativeTime(snapshot.lastSyncedAt!)}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: const Color(0xFF60717B),
                           ),

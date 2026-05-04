@@ -10,21 +10,67 @@ import 'panel_endpoint_parser.dart';
 import 'panel_http_client.dart';
 import 'panel_web_debug_proxy.dart';
 
+typedef PanelRuntimeAuthRefresher = Future<void> Function();
+
 class PanelRestHttpClient implements PanelHttpClient {
   PanelRestHttpClient({
     required PanelServerConnectionProfile server,
     http.Client? client,
+    PanelRuntimeAuthRefresher? runtimeAuthRefresher,
   })  : _server = server,
-        _client = client ?? http.Client();
+        _client = client ?? http.Client(),
+        _runtimeAuthRefresher = runtimeAuthRefresher;
 
   final PanelServerConnectionProfile _server;
   final http.Client _client;
   static const Duration _requestTimeout = Duration(seconds: 15);
+  static const String _panelMateCookieHeader = 'X-PanelMate-Cookie';
+  static const String _panelMateSetCookieHeader = 'x-panelmate-set-cookie';
 
   String? _runtimeToken;
+  final Map<String, String> _cookies = <String, String>{};
+  PanelRuntimeAuthRefresher? _runtimeAuthRefresher;
+  Future<void>? _runtimeAuthRefreshInFlight;
 
-  void setRuntimeToken(String token) {
-    _runtimeToken = token;
+  void setRuntimeToken(String? token) {
+    final normalizedToken = token?.trim();
+    _runtimeToken = normalizedToken == null || normalizedToken.isEmpty
+        ? null
+        : normalizedToken;
+  }
+
+  void setRuntimeAuthRefresher(PanelRuntimeAuthRefresher refresher) {
+    _runtimeAuthRefresher = refresher;
+  }
+
+  void clearRuntimeToken() {
+    _runtimeToken = null;
+  }
+
+  void setRuntimeCookies(String? cookieHeader) {
+    _cookies
+      ..clear()
+      ..addAll(_parseCookieHeader(cookieHeader));
+  }
+
+  void clearRuntimeCredentials() {
+    clearRuntimeToken();
+    _cookies.clear();
+  }
+
+  String? get cookieHeader {
+    if (_cookies.isEmpty) {
+      return null;
+    }
+    return _cookies.entries
+        .map((entry) => '${entry.key}=${entry.value}')
+        .join('; ');
+  }
+
+  String? get csrfToken => _cookies['pcsrftoken'];
+
+  String? cookieValue(String name) {
+    return _cookies[name];
   }
 
   @override
@@ -33,10 +79,17 @@ class PanelRestHttpClient implements PanelHttpClient {
     Map<String, String>? headers,
     Map<String, dynamic>? queryParameters,
   }) async {
-    final request =
-        http.Request('GET', _buildUri(path, queryParameters: queryParameters));
-    request.headers.addAll(_buildHeaders(headers: headers));
-    return _send(request);
+    return _sendWithAuthRecovery(
+      () {
+        final request = http.Request(
+          'GET',
+          _buildUri(path, queryParameters: queryParameters),
+        );
+        request.headers.addAll(_buildHeaders(headers: headers));
+        return request;
+      },
+      allowAuthRecovery: !_isAuthenticationPath(path),
+    );
   }
 
   @override
@@ -46,18 +99,26 @@ class PanelRestHttpClient implements PanelHttpClient {
     Map<String, dynamic>? queryParameters,
     Object? body,
   }) async {
-    final request =
-        http.Request('POST', _buildUri(path, queryParameters: queryParameters));
-    request.headers.addAll(
-      _buildHeaders(
-        headers: headers,
-        includeJsonContentType: true,
-      ),
+    return _sendWithAuthRecovery(
+      () {
+        final request = http.Request(
+          'POST',
+          _buildUri(path, queryParameters: queryParameters),
+        );
+        request.headers.addAll(
+          _buildHeaders(
+            headers: headers,
+            includeJsonContentType: true,
+            includeCsrfToken: true,
+          ),
+        );
+        if (body != null) {
+          request.body = jsonEncode(body);
+        }
+        return request;
+      },
+      allowAuthRecovery: !_isAuthenticationPath(path),
     );
-    if (body != null) {
-      request.body = jsonEncode(body);
-    }
-    return _send(request);
   }
 
   @override
@@ -67,20 +128,26 @@ class PanelRestHttpClient implements PanelHttpClient {
     Map<String, dynamic>? queryParameters,
     Object? body,
   }) async {
-    final request = http.Request(
-      'DELETE',
-      _buildUri(path, queryParameters: queryParameters),
+    return _sendWithAuthRecovery(
+      () {
+        final request = http.Request(
+          'DELETE',
+          _buildUri(path, queryParameters: queryParameters),
+        );
+        request.headers.addAll(
+          _buildHeaders(
+            headers: headers,
+            includeJsonContentType: body != null,
+            includeCsrfToken: true,
+          ),
+        );
+        if (body != null) {
+          request.body = jsonEncode(body);
+        }
+        return request;
+      },
+      allowAuthRecovery: !_isAuthenticationPath(path),
     );
-    request.headers.addAll(
-      _buildHeaders(
-        headers: headers,
-        includeJsonContentType: body != null,
-      ),
-    );
-    if (body != null) {
-      request.body = jsonEncode(body);
-    }
-    return _send(request);
   }
 
   Uri _buildUri(
@@ -105,17 +172,27 @@ class PanelRestHttpClient implements PanelHttpClient {
   Map<String, String> _buildHeaders({
     Map<String, String>? headers,
     bool includeJsonContentType = false,
+    bool includeCsrfToken = false,
   }) {
     final timestamp = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
     final timestampString = timestamp.toString();
+    final runtimeCookieHeader = cookieHeader;
+    final runtimeCsrfToken = csrfToken;
+    final entranceCode = _encodedEntranceCode(_server.entranceCode);
+    final token = _resolvedToken(timestampString);
     final built = <String, String>{
       'Accept': 'application/json',
       if (includeJsonContentType) 'Content-Type': 'application/json',
-      if (_resolvedToken(timestampString) case final token?)
-        '1Panel-Token': token,
-      '1Panel-Timestamp': timestampString,
-      if (_server.entranceCode != null && _server.entranceCode!.isNotEmpty)
-        'EntranceCode': _server.entranceCode!,
+      if (token != null) '1Panel-Token': token,
+      if (token != null) '1Panel-Timestamp': timestampString,
+      if (entranceCode != null) 'EntranceCode': entranceCode,
+      if (runtimeCookieHeader != null)
+        if (PanelWebDebugProxy.isEnabled)
+          _panelMateCookieHeader: runtimeCookieHeader
+        else
+          'Cookie': runtimeCookieHeader,
+      if (includeCsrfToken && runtimeCsrfToken != null)
+        'X-CSRF-Token': runtimeCsrfToken,
     };
 
     if (headers != null) {
@@ -136,6 +213,69 @@ class PanelRestHttpClient implements PanelHttpClient {
       return md5.convert(utf8.encode(raw)).toString();
     }
     return null;
+  }
+
+  String? _encodedEntranceCode(String? entranceCode) {
+    final normalized = entranceCode?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return null;
+    }
+    return base64.encode(utf8.encode(normalized));
+  }
+
+  Map<String, String> _parseCookieHeader(String? rawHeader) {
+    final normalized = rawHeader?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return const <String, String>{};
+    }
+
+    final parsed = <String, String>{};
+    for (final part in normalized.split(';')) {
+      final pair = part.trim();
+      final separator = pair.indexOf('=');
+      if (separator <= 0) {
+        continue;
+      }
+      final name = pair.substring(0, separator).trim();
+      final value = pair.substring(separator + 1).trim();
+      if (name.isNotEmpty) {
+        parsed[name] = value;
+      }
+    }
+    return parsed;
+  }
+
+  void _storeSetCookieHeaders(http.Response response) {
+    final rawSetCookie = response.headers['set-cookie'] ??
+        response.headers[_panelMateSetCookieHeader];
+    if (rawSetCookie == null || rawSetCookie.trim().isEmpty) {
+      return;
+    }
+
+    for (final cookie in _splitSetCookieHeader(rawSetCookie)) {
+      final firstPart = cookie.split(';').first.trim();
+      final separator = firstPart.indexOf('=');
+      if (separator <= 0) {
+        continue;
+      }
+
+      final name = firstPart.substring(0, separator).trim();
+      final value = firstPart.substring(separator + 1).trim();
+      final lowerCookie = cookie.toLowerCase();
+      if (lowerCookie.contains('max-age=0')) {
+        _cookies.remove(name);
+      } else if (name.isNotEmpty) {
+        _cookies[name] = value;
+      }
+    }
+  }
+
+  List<String> _splitSetCookieHeader(String rawHeader) {
+    return rawHeader
+        .split(RegExp(r',\s*(?=[^;,=\s]+=)'))
+        .map((cookie) => cookie.trim())
+        .where((cookie) => cookie.isNotEmpty)
+        .toList();
   }
 
   Map<String, dynamic> _decodeResponse(http.Response response) {
@@ -261,10 +401,76 @@ class PanelRestHttpClient implements PanelHttpClient {
     return lower.startsWith('<!doctype html') || lower.startsWith('<html');
   }
 
+  Future<Map<String, dynamic>> _sendWithAuthRecovery(
+    http.Request Function() buildRequest, {
+    required bool allowAuthRecovery,
+  }) async {
+    try {
+      return await _send(buildRequest());
+    } on PanelApiException catch (error) {
+      if (!_canRecoverAuthentication(error, allowAuthRecovery)) {
+        rethrow;
+      }
+
+      await _refreshRuntimeAuth();
+      return _send(buildRequest());
+    }
+  }
+
+  bool _canRecoverAuthentication(
+    PanelApiException error,
+    bool allowAuthRecovery,
+  ) {
+    if (!allowAuthRecovery ||
+        _server.authMode != PanelAuthMode.accountPassword ||
+        _runtimeAuthRefresher == null) {
+      return false;
+    }
+
+    if (error.statusCode == 401) {
+      return true;
+    }
+
+    final message = error.message.trim();
+    return error.code == 'panel_response_error' && message == 'ErrNotLogin';
+  }
+
+  Future<void> _refreshRuntimeAuth() {
+    final inFlight = _runtimeAuthRefreshInFlight;
+    if (inFlight != null) {
+      return inFlight;
+    }
+
+    final refresher = _runtimeAuthRefresher;
+    if (refresher == null) {
+      throw const PanelApiException(
+        'No account-password auth refresher was configured.',
+        code: 'missing_auth_refresher',
+      );
+    }
+
+    clearRuntimeCredentials();
+    final refresh = refresher();
+    _runtimeAuthRefreshInFlight = refresh;
+    return refresh.whenComplete(() {
+      _runtimeAuthRefreshInFlight = null;
+    });
+  }
+
+  bool _isAuthenticationPath(String path) {
+    return path.endsWith('/auth/login') ||
+        path.endsWith('/auth/mfalogin') ||
+        path.endsWith('/auth/setting') ||
+        path.endsWith('/auth/captcha') ||
+        path.endsWith('/auth/logout');
+  }
+
   Future<Map<String, dynamic>> _send(http.Request request) async {
     try {
       final response = await _client.send(request).timeout(_requestTimeout);
-      return _decodeResponse(await http.Response.fromStream(response));
+      final decodedResponse = await http.Response.fromStream(response);
+      _storeSetCookieHeaders(decodedResponse);
+      return _decodeResponse(decodedResponse);
     } on TimeoutException {
       throw PanelApiException.timeout(
         message: '请求超时，请检查面板网络连通性后重试。',

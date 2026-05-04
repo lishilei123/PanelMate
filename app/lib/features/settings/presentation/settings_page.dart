@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../app/panel_gradient_theme.dart';
 import '../../../core/panel/models/server_connection_profile.dart';
 import '../../../core/panel/runtime/panel_server_runtime_state.dart';
+import '../../../core/panel/storage/panel_app_settings_repository.dart';
 import '../../../shared/demo/panel_demo_catalog.dart';
 import '../../../shared/widgets/panel_card.dart';
 
@@ -327,7 +328,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  for (final option in ['15s', '30s', '60s', '关闭'])
+                  for (final option
+                      in PanelAppSettingsRepository.supportedPollingIntervals)
                     _PollingChip(
                       label: option,
                       selected: widget.pollingInterval == option,

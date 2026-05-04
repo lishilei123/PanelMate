@@ -1,7 +1,7 @@
 {
   "meta": {
-    "version": "2.0",
-    "updatedAt": "2026-04-06",
+    "version": "2.1",
+    "updatedAt": "2026-05-04",
     "scope": "1Panel V2 API only"
   },
   "apiVersion": "v2",
@@ -14,16 +14,42 @@
     "requireEntranceCodeOnLogin": true
   },
   "auth": {
+    "settingPath": "/api/v2/core/auth/setting",
+    "captchaPath": "/api/v2/core/auth/captcha",
     "loginPath": "/api/v2/core/auth/login",
     "logoutPath": "/api/v2/core/auth/logout",
     "tokenHeader": "1Panel-Token",
     "timestampHeader": "1Panel-Timestamp",
-    "entranceCodeHeader": "EntranceCode"
+    "entranceCodeHeader": "EntranceCode",
+    "entranceCodeEncoding": "base64(entrance segment)",
+    "accountPasswordMode": {
+      "authMethod": "session",
+      "publicKeyCookie": "panel_public_key",
+      "passwordFormat": "RSA_PKCS1(AES_KEY):BASE64(IV):AES_CBC_PKCS7(password)",
+      "aes": {
+        "keySource": "16 random bytes encoded as 32 hex characters",
+        "mode": "CBC",
+        "padding": "PKCS7",
+        "ivSource": "16 random bytes"
+      },
+      "sessionCookies": [
+        "psession",
+        "pcsrftoken"
+      ],
+      "csrfHeader": "X-CSRF-Token",
+      "captchaSupport": true,
+      "mfaSupport": false
+    },
+    "apiKeyMode": {
+      "tokenFormula": "md5(\"1panel\" + apiKey + timestampSeconds)"
+    }
   },
   "realApiNotes": {
     "verifiedAt": "2026-04-06",
+    "authVerifiedAt": "2026-05-04",
     "requestBaseRule": "Use scheme://host:port/api/v2/... only. Do not prepend the login-page path segment to /api/v2/.",
     "securityEntranceRule": "The login-page path segment is not an API base path. Treat it as a possible security entrance value when needed.",
+    "accountPasswordAuthRule": "Call /core/auth/setting first, read panel_public_key, encrypt password with RSA + AES-CBC, then persist psession and pcsrftoken cookies after /core/auth/login.",
     "fieldReality": [
       "Some empty values in the mobile UI are genuine server payload values, such as static websites without runtime info and apps without webUI.",
       "The client should prefer real non-empty fallback fields from the same payload and hide optional empty rows.",
