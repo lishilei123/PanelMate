@@ -102,73 +102,95 @@ class _OverviewPageState extends State<OverviewPage> {
     final hasSearchText = query.isNotEmpty;
     final hasMatches = filtered.isNotEmpty;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-      children: [
-        _OverviewHeader(
-          totalCount: records.length,
-          onlineCount: onlineCount,
-          onAddServer: widget.onAddServer,
-        ),
-        const SizedBox(height: 14),
-        TextField(
-          controller: _searchController,
-          onChanged: (_) => setState(() {}),
-          decoration: InputDecoration(
-            prefixIcon: const Icon(Icons.search),
-            hintText: '搜索服务器名称、地址或标签',
-            filled: true,
-            fillColor: Colors.white.withValues(alpha: 0.70),
-            suffixIcon: hasSearchText
-                ? IconButton(
-                    onPressed: () {
-                      _searchController.clear();
-                      setState(() {});
-                    },
-                    icon: const Icon(Icons.close),
-                  )
-                : null,
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _OverviewHeader(
+                  totalCount: records.length,
+                  onlineCount: onlineCount,
+                  onAddServer: widget.onAddServer,
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: _searchController,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.search),
+                    hintText: '搜索服务器名称、地址或标签',
+                    filled: true,
+                    fillColor: Colors.white.withValues(alpha: 0.70),
+                    suffixIcon: hasSearchText
+                        ? IconButton(
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {});
+                            },
+                            icon: const Icon(Icons.close),
+                          )
+                        : null,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _OverviewFilterBar(
+                  totalCount: records.length,
+                  onlineCount: onlineCount,
+                  offlineCount: offlineCount,
+                  selectedFilter: _selectedFilter,
+                  onSelectFilter: (filter) {
+                    if (_selectedFilter == filter) {
+                      return;
+                    }
+                    setState(() => _selectedFilter = filter);
+                  },
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: 14),
-        _OverviewFilterBar(
-          totalCount: records.length,
-          onlineCount: onlineCount,
-          offlineCount: offlineCount,
-          selectedFilter: _selectedFilter,
-          onSelectFilter: (filter) {
-            if (_selectedFilter == filter) {
-              return;
-            }
-            setState(() => _selectedFilter = filter);
-          },
-        ),
-        const SizedBox(height: 12),
         if (hasMatches)
-          ...filtered.map(
-            (record) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _ServerCard(
-                server: record.server,
-                snapshot: record.snapshot,
-                runtime: record.runtime,
-                onTap: () => widget.onOpenServer(record.server),
-                onActionSelected: (action) =>
-                    _handleServerAction(record.server, action),
-              ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
+            sliver: SliverList.builder(
+              itemCount: filtered.length,
+              itemBuilder: (context, index) {
+                final record = filtered[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _ServerCard(
+                    key: ValueKey(record.server.credentialStorageKey),
+                    server: record.server,
+                    snapshot: record.snapshot,
+                    runtime: record.runtime,
+                    onTap: () => widget.onOpenServer(record.server),
+                    onActionSelected: (action) =>
+                        _handleServerAction(record.server, action),
+                  ),
+                );
+              },
             ),
           )
-        else if (widget.servers.isEmpty)
-          const _EmptyOverviewCard(
-            icon: Icons.dns_outlined,
-            title: '还没有服务器',
-            message: '添加一台 1Panel V2 服务器后，这里会显示实时资源和健康状态。',
-          )
         else
-          const _EmptyOverviewCard(
-            icon: Icons.search_off_outlined,
-            title: '没有匹配结果',
-            message: '换一个名称、地址或标签继续搜索。',
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
+            sliver: SliverToBoxAdapter(
+              child: widget.servers.isEmpty
+                  ? const _EmptyOverviewCard(
+                      icon: Icons.dns_outlined,
+                      title: '还没有服务器',
+                      message: '添加一台 1Panel V2 服务器后，这里会显示实时资源和健康状态。',
+                    )
+                  : const _EmptyOverviewCard(
+                      icon: Icons.search_off_outlined,
+                      title: '没有匹配结果',
+                      message: '换一个名称、地址或标签继续搜索。',
+                    ),
+            ),
           ),
       ],
     );
@@ -419,6 +441,7 @@ class _FilterChip extends StatelessWidget {
 
 class _ServerCard extends StatelessWidget {
   const _ServerCard({
+    super.key,
     required this.server,
     required this.snapshot,
     required this.runtime,

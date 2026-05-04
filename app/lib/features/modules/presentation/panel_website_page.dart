@@ -29,11 +29,62 @@ class _PanelWebsitePageState extends State<PanelWebsitePage> {
   PanelPagedPayload<PanelWebsiteItem>? _payload;
   String? _errorMessage;
   bool _isLoading = true;
+  final Set<int> _operatingIds = <int>{};
 
   @override
   void initState() {
     super.initState();
     unawaited(_load());
+  }
+
+  Future<void> _operate(PanelWebsiteItem item, String action) async {
+    final label = _actionLabel(action);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('$label 网站'),
+        content: Text('确定要$label「${item.primaryDomain}」吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: action == 'stop'
+                  ? Theme.of(ctx).colorScheme.error
+                  : Theme.of(ctx).colorScheme.primary,
+            ),
+            child: Text(label),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _operatingIds.add(item.id));
+    try {
+      await widget.service.operateWebsite(
+        widget.server,
+        websiteId: item.id,
+        operation: action,
+      );
+      if (!mounted) return;
+      await _load();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '操作失败：${PanelErrorMessageResolver.resolve(error)}',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _operatingIds.remove(item.id));
+    }
   }
 
   Future<void> _load() async {
@@ -119,7 +170,7 @@ class _PanelWebsitePageState extends State<PanelWebsitePage> {
               ],
               const PanelModuleSectionTitle(
                 title: '网站列表',
-                subtitle: '当前页面只做真实只读展示，不直接修改站点配置。',
+                subtitle: '点击状态标签可切换站点启停，操作前会二次确认。',
               ),
               const SizedBox(height: 12),
               if (payload.isEmpty)
@@ -149,10 +200,27 @@ class _PanelWebsitePageState extends State<PanelWebsitePage> {
                                       ),
                                 ),
                               ),
-                              StatusChip(
-                                label: _statusLabel(item.status),
-                                color: _statusColor(item.status),
-                              ),
+                              if (_operatingIds.contains(item.id))
+                                const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              else
+                                GestureDetector(
+                                  onTap: () => _operate(
+                                    item,
+                                    item.status.toLowerCase() == 'running'
+                                        ? 'stop'
+                                        : 'start',
+                                  ),
+                                  child: StatusChip(
+                                    label: _statusLabel(item.status),
+                                    color: _statusColor(item.status),
+                                  ),
+                                ),
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -221,6 +289,17 @@ class _PanelWebsitePageState extends State<PanelWebsitePage> {
         ),
       ),
     );
+  }
+
+  String _actionLabel(String action) {
+    switch (action) {
+      case 'start':
+        return '启动';
+      case 'stop':
+        return '停止';
+      default:
+        return action;
+    }
   }
 
   Color _statusColor(String status) {

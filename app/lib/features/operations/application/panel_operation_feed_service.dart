@@ -46,7 +46,11 @@ class PanelOperationFeedService {
     Future<T> Function(PanelApiSession session) loader,
   ) async {
     final session = await sessionFactory.createSession(server);
-    return loader(session);
+    try {
+      return await loader(session);
+    } finally {
+      session.close();
+    }
   }
 
   PanelOperationLogEntry _mapOperationItem(

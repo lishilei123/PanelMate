@@ -23,19 +23,20 @@ class PanelRuntimeService {
         ? _sessionFactory
         : PanelApiSessionFactory(captchaResolver: captchaResolver);
     final session = await sessionFactory.createSession(server);
-    final bundle = session.bundle;
-
-    final current = await bundle.overview.loadCurrent(
-      ioOption: 'all',
-      netOption: 'all',
-    );
-
-    return PanelServerRuntimeState.connected(
-      PanelLiveOverviewData.fromMap(
-        current,
-        previous: previousOverview,
-      ),
-    );
+    try {
+      final current = await session.bundle.overview.loadCurrent(
+        ioOption: 'all',
+        netOption: 'all',
+      );
+      return PanelServerRuntimeState.connected(
+        PanelLiveOverviewData.fromMap(
+          current,
+          previous: previousOverview,
+        ),
+      );
+    } finally {
+      session.close();
+    }
   }
 
   Future<PanelVersionProbeResult> probeServer(

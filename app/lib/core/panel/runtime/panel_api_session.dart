@@ -17,6 +17,10 @@ class PanelApiSession {
 
   final PanelRestHttpClient client;
   final PanelApiBundle bundle;
+
+  void close() {
+    client.close();
+  }
 }
 
 class PanelApiSessionFactory {

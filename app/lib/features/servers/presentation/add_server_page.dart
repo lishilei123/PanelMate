@@ -92,7 +92,7 @@ class _AddServerPageState extends State<AddServerPage> {
   }
 
   Future<void> _runConnectionTest() async {
-    _autoParseAddressInput();
+    _autoParseAddressInput(allowClearAutoFilled: false);
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -149,7 +149,7 @@ class _AddServerPageState extends State<AddServerPage> {
   }
 
   void _submit() {
-    _autoParseAddressInput();
+    _autoParseAddressInput(allowClearAutoFilled: false);
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -187,7 +187,7 @@ class _AddServerPageState extends State<AddServerPage> {
     }
   }
 
-  void _autoParseAddressInput() {
+  void _autoParseAddressInput({bool allowClearAutoFilled = true}) {
     if (_isApplyingParsedAddress) {
       return;
     }
@@ -214,7 +214,8 @@ class _AddServerPageState extends State<AddServerPage> {
           (currentEntranceCode.isEmpty ||
               currentEntranceCode == _lastAutoFilledEntranceCode);
       final shouldClearAutoFilledEntranceCode =
-          (nextEntranceCode == null || nextEntranceCode.isEmpty) &&
+          allowClearAutoFilled &&
+              (nextEntranceCode == null || nextEntranceCode.isEmpty) &&
               currentEntranceCode.isNotEmpty &&
               currentEntranceCode == _lastAutoFilledEntranceCode;
 

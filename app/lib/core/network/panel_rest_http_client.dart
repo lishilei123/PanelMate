@@ -58,6 +58,10 @@ class PanelRestHttpClient implements PanelHttpClient {
     _cookies.clear();
   }
 
+  void close() {
+    _client.close();
+  }
+
   String? get cookieHeader {
     if (_cookies.isEmpty) {
       return null;

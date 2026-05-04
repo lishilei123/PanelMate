@@ -44,7 +44,8 @@ class _PanelMateAppState extends State<PanelMateApp> {
       gradientThemeId = await widget.settingsRepository.loadGradientThemeId();
       customGradientThemeColors =
           await widget.settingsRepository.loadCustomGradientThemeColors();
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('[PanelMate] Failed to restore gradient theme: $error\n$stackTrace');
       return;
     }
     if (!mounted) {

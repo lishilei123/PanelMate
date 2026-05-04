@@ -436,6 +436,17 @@ class _PanelHomeShellPageState extends State<PanelHomeShellPage> {
     final previous = _runtimeByServer[key];
 
     if (_refreshingServerKeys.contains(key)) {
+      // A refresh is already in flight for this server. Show loading so the
+      // user gets visual feedback; the in-flight request will update the state
+      // when it completes.
+      if (showLoadingState && mounted) {
+        setState(() {
+          _runtimeByServer[key] = PanelServerRuntimeState.loading(
+            previousOverview: previous?.overview,
+            previousSyncedAt: previous?.syncedAt,
+          );
+        });
+      }
       return previous ?? PanelServerRuntimeState.idle();
     }
 

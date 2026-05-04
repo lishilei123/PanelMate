@@ -173,7 +173,6 @@ class _ServerDetailPageState extends State<ServerDetailPage> {
     final server = widget.server;
     final runtime = _runtime;
     final snapshot = PanelDemoCatalog.snapshotFor(server, runtime: runtime);
-    final flags = server.compatibilityFlags;
     final modules = <_ServerRealModuleShortcut>[
       _ServerRealModuleShortcut(
         label: '容器',
@@ -453,39 +452,6 @@ class _ServerDetailPageState extends State<ServerDetailPage> {
                   ),
                 ),
             ],
-            const SizedBox(height: 18),
-            const _SectionTitle(
-              title: '接口能力摘要',
-              subtitle: '展示当前接入使用的 1Panel V2 API 能力特征。',
-            ),
-            const SizedBox(height: 12),
-            PanelCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _CompatibilityRow(
-                    label: '使用 core/auth',
-                    value: _boolLabel(flags?.useCoreAuth),
-                  ),
-                  _CompatibilityRow(
-                    label: '使用 :id 路由参数',
-                    value: _boolLabel(flags?.useColonRouteParams),
-                  ),
-                  _CompatibilityRow(
-                    label: 'GET 总览接口',
-                    value: _boolLabel(flags?.useDashboardCurrentGet),
-                  ),
-                  _CompatibilityRow(
-                    label: 'GET 容器日志',
-                    value: _boolLabel(flags?.useContainerLogGet),
-                  ),
-                  _CompatibilityRow(
-                    label: '登录需要 EntranceCode',
-                    value: _boolLabel(flags?.requireEntranceCodeOnLogin),
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
       ),
@@ -525,12 +491,6 @@ class _ServerDetailPageState extends State<ServerDetailPage> {
     );
   }
 
-  static String _boolLabel(bool? value) {
-    if (value == null) {
-      return '-';
-    }
-    return value ? '是' : '否';
-  }
 }
 
 class _HeroCard extends StatelessWidget {
@@ -868,35 +828,6 @@ class _OperationRow extends StatelessWidget {
       default:
         return const Color(0xFF2E6A95);
     }
-  }
-}
-
-class _CompatibilityRow extends StatelessWidget {
-  const _CompatibilityRow({
-    required this.label,
-    required this.value,
-  });
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(width: 150, child: Text(label)),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

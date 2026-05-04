@@ -145,7 +145,6 @@ class PanelModuleService {
           'page': 1,
           'pageSize': 100,
           'containSub': false,
-          'dir': true,
           'expand': true,
           'isDetail': true,
           'showHidden': false,
@@ -171,6 +170,19 @@ class PanelModuleService {
       );
 
       return PanelFileContentData.fromMap(payload);
+    });
+  }
+
+  Future<void> operateWebsite(
+    PanelServerConnectionProfile server, {
+    required int websiteId,
+    required String operation,
+  }) {
+    return _withSession(server, (session) async {
+      await session.bundle.website.operateWebsite(<String, dynamic>{
+        'id': websiteId,
+        'operate': operation,
+      });
     });
   }
 
@@ -272,7 +284,11 @@ class PanelModuleService {
     Future<T> Function(PanelApiSession session) loader,
   ) async {
     final session = await sessionFactory.createSession(server);
-    return loader(session);
+    try {
+      return await loader(session);
+    } finally {
+      session.close();
+    }
   }
 
   String _createdOrderBy() {
