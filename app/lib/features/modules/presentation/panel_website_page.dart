@@ -10,6 +10,7 @@ import '../../../shared/widgets/status_chip.dart';
 import '../application/panel_module_service.dart';
 import '../models/panel_module_models.dart';
 import 'panel_module_widgets.dart';
+import 'panel_website_log_page.dart';
 
 class PanelWebsitePage extends StatefulWidget {
   const PanelWebsitePage({
@@ -170,7 +171,7 @@ class _PanelWebsitePageState extends State<PanelWebsitePage> {
               ],
               const PanelModuleSectionTitle(
                 title: '网站列表',
-                subtitle: '点击状态标签可切换站点启停，操作前会二次确认。',
+                subtitle: '点状态标签切换启停，三点菜单可查看访问/错误日志。',
               ),
               const SizedBox(height: 12),
               if (payload.isEmpty)
@@ -208,7 +209,7 @@ class _PanelWebsitePageState extends State<PanelWebsitePage> {
                                     strokeWidth: 2,
                                   ),
                                 )
-                              else
+                              else ...[
                                 GestureDetector(
                                   onTap: () => _operate(
                                     item,
@@ -221,6 +222,9 @@ class _PanelWebsitePageState extends State<PanelWebsitePage> {
                                     color: _statusColor(item.status),
                                   ),
                                 ),
+                                const SizedBox(width: 4),
+                                _buildActionMenu(item),
+                              ],
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -300,6 +304,44 @@ class _PanelWebsitePageState extends State<PanelWebsitePage> {
       default:
         return action;
     }
+  }
+
+  Widget _buildActionMenu(PanelWebsiteItem item) {
+    return PopupMenuButton<String>(
+      tooltip: '操作',
+      icon: const Icon(Icons.more_vert, size: 20),
+      padding: EdgeInsets.zero,
+      onSelected: (value) {
+        if (value == 'logs') {
+          _viewLogs(item);
+        }
+      },
+      itemBuilder: (context) => const <PopupMenuEntry<String>>[
+        PopupMenuItem<String>(
+          value: 'logs',
+          child: Row(
+            children: [
+              Icon(Icons.notes_outlined, size: 18),
+              SizedBox(width: 10),
+              Text('查看日志'),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _viewLogs(PanelWebsiteItem item) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PanelWebsiteLogPage(
+          server: widget.server,
+          websiteId: item.id,
+          websiteLabel: item.primaryDomain,
+          service: widget.service,
+        ),
+      ),
+    );
   }
 
   Color _statusColor(String status) {

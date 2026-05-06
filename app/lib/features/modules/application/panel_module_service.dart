@@ -186,6 +186,27 @@ class PanelModuleService {
     });
   }
 
+  Future<PanelWebsiteLogResult> loadWebsiteLog(
+    PanelServerConnectionProfile server, {
+    required int websiteId,
+    required String logType,
+    int page = 1,
+    int pageSize = 500,
+  }) {
+    return _withSession(server, (session) async {
+      final payload = await session.bundle.website.loadWebsiteLog(
+        <String, dynamic>{
+          'id': websiteId,
+          'logType': logType,
+          'operate': 'get',
+          'page': page,
+          'pageSize': pageSize,
+        },
+      );
+      return PanelWebsiteLogResult.fromMap(payload);
+    });
+  }
+
   Future<void> operateContainer(
     PanelServerConnectionProfile server, {
     required String name,

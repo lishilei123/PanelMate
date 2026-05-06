@@ -384,6 +384,35 @@ class PanelFileContentData {
   }
 }
 
+class PanelWebsiteLogResult {
+  const PanelWebsiteLogResult({
+    required this.content,
+    required this.path,
+    required this.enabled,
+    required this.end,
+  });
+
+  final String content;
+  final String path;
+  final bool enabled;
+  final bool end;
+
+  factory PanelWebsiteLogResult.fromMap(Map<String, dynamic> json) {
+    final data = json['data'];
+    final source = data is Map<String, dynamic>
+        ? data
+        : data is Map
+            ? data.map((k, v) => MapEntry(k.toString(), v))
+            : json;
+    return PanelWebsiteLogResult(
+      content: _string(source['content']),
+      path: _string(source['path']),
+      enabled: _bool(source['enable']),
+      end: _bool(source['end']),
+    );
+  }
+}
+
 class PanelBackupPageData {
   const PanelBackupPageData({
     required this.accounts,
