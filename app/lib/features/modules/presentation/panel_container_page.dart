@@ -9,6 +9,7 @@ import '../../../shared/widgets/panel_card.dart';
 import '../../../shared/widgets/status_chip.dart';
 import '../application/panel_module_service.dart';
 import '../models/panel_module_models.dart';
+import 'panel_container_log_page.dart';
 import 'panel_module_widgets.dart';
 
 class PanelContainerPage extends StatefulWidget {
@@ -441,34 +442,60 @@ class _PanelContainerPageState extends State<PanelContainerPage> {
 
   Widget _buildActionMenu(PanelContainerItem item) {
     final actions = _availableActions(item.state);
-    if (actions.isEmpty) {
-      return const SizedBox.shrink();
-    }
     return PopupMenuButton<String>(
       tooltip: '操作',
       icon: const Icon(Icons.more_vert, size: 20),
       padding: EdgeInsets.zero,
-      onSelected: (action) => _operate(item, action),
-      itemBuilder: (context) => actions
-          .map(
-            (action) => PopupMenuItem<String>(
-              value: action,
-              child: Row(
-                children: [
-                  Icon(
-                    _actionIcon(action),
-                    size: 18,
-                    color: action == 'stop' || action == 'kill'
-                        ? Theme.of(context).colorScheme.error
-                        : null,
-                  ),
-                  const SizedBox(width: 10),
-                  Text(_actionLabel(action)),
-                ],
-              ),
+      onSelected: (value) {
+        if (value == 'logs') {
+          _viewLogs(item);
+        } else {
+          _operate(item, value);
+        }
+      },
+      itemBuilder: (context) => <PopupMenuEntry<String>>[
+        const PopupMenuItem<String>(
+          value: 'logs',
+          child: Row(
+            children: [
+              Icon(Icons.notes_outlined, size: 18),
+              SizedBox(width: 10),
+              Text('查看日志'),
+            ],
+          ),
+        ),
+        if (actions.isNotEmpty) const PopupMenuDivider(),
+        ...actions.map(
+          (action) => PopupMenuItem<String>(
+            value: action,
+            child: Row(
+              children: [
+                Icon(
+                  _actionIcon(action),
+                  size: 18,
+                  color: action == 'stop' || action == 'kill'
+                      ? Theme.of(context).colorScheme.error
+                      : null,
+                ),
+                const SizedBox(width: 10),
+                Text(_actionLabel(action)),
+              ],
             ),
-          )
-          .toList(growable: false),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _viewLogs(PanelContainerItem item) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PanelContainerLogPage(
+          server: widget.server,
+          containerName: item.name,
+          service: widget.service,
+        ),
+      ),
     );
   }
 

@@ -199,6 +199,38 @@ class PanelModuleService {
     });
   }
 
+  Future<String> loadContainerLog(
+    PanelServerConnectionProfile server, {
+    required String name,
+    String? since,
+    int? tail,
+    bool? timestamp,
+  }) {
+    return _withSession(server, (session) async {
+      final payload = await session.bundle.container.loadContainerLogs(
+        container: name,
+        since: since,
+        tail: tail,
+        timestamp: timestamp == true ? 1 : null,
+      );
+      return _extractLogContent(payload);
+    });
+  }
+
+  String _extractLogContent(Map<String, dynamic> payload) {
+    final data = payload['data'];
+    if (data is String) {
+      return data;
+    }
+    if (data is Map) {
+      final logs = data['logs'] ?? data['log'] ?? data['content'];
+      if (logs is String) return logs;
+    }
+    final direct = payload['logs'] ?? payload['log'] ?? payload['content'];
+    if (direct is String) return direct;
+    return '';
+  }
+
   Future<void> operateApp(
     PanelServerConnectionProfile server, {
     required int installId,
