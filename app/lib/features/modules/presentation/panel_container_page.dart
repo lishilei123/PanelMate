@@ -29,11 +29,83 @@ class _PanelContainerPageState extends State<PanelContainerPage> {
   PanelPagedPayload<PanelContainerItem>? _payload;
   String? _errorMessage;
   bool _isLoading = true;
+  final Set<String> _operatingNames = <String>{};
 
   @override
   void initState() {
     super.initState();
     unawaited(_load());
+  }
+
+  Future<void> _operate(PanelContainerItem item, String action) async {
+    final label = _actionLabel(action);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('$label 容器'),
+        content: Text('确定要$label「${item.name}」吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: action == 'stop' || action == 'kill'
+                  ? Theme.of(ctx).colorScheme.error
+                  : Theme.of(ctx).colorScheme.primary,
+            ),
+            child: Text(label),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _operatingNames.add(item.name));
+    try {
+      await widget.service.operateContainer(
+        widget.server,
+        name: item.name,
+        operation: action,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('已$label「${item.name}」。')),
+      );
+      await _load();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '$label失败：${PanelErrorMessageResolver.resolve(error)}',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _operatingNames.remove(item.name));
+    }
+  }
+
+  List<String> _availableActions(String state) {
+    final lower = state.toLowerCase();
+    switch (lower) {
+      case 'running':
+        return const ['stop', 'restart'];
+      case 'paused':
+        return const ['unpause', 'restart'];
+      case 'exited':
+      case 'dead':
+      case 'created':
+        return const ['start'];
+      case 'restarting':
+        return const ['stop'];
+      default:
+        return const ['start', 'stop', 'restart'];
+    }
   }
 
   Future<void> _load() async {
@@ -216,7 +288,7 @@ class _PanelContainerPageState extends State<PanelContainerPage> {
                 ),
               const PanelModuleSectionTitle(
                 title: '运行概览',
-                subtitle: '真实读取 1Panel 容器搜索与统计接口。',
+                subtitle: '展示容器的运行状态、资源占用与统计信息。',
               ),
               const SizedBox(height: 12),
               _ContainerSummary(payload: payload),
@@ -241,7 +313,7 @@ class _PanelContainerPageState extends State<PanelContainerPage> {
                 const PanelModuleEmptyCard(
                   icon: Icons.inventory_2_outlined,
                   title: '当前没有容器',
-                  subtitle: '接口已经接通，但该服务器没有返回任何容器项目。',
+                  subtitle: '当前服务器暂无容器项目。',
                 )
               else
                 ...payload.items.map(
@@ -267,10 +339,22 @@ class _PanelContainerPageState extends State<PanelContainerPage> {
                                         ),
                                   ),
                                 ),
-                                StatusChip(
-                                  label: _stateLabel(item.state),
-                                  color: _stateColor(item.state),
-                                ),
+                                if (_operatingNames.contains(item.name))
+                                  const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                else ...[
+                                  StatusChip(
+                                    label: _stateLabel(item.state),
+                                    color: _stateColor(item.state),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  _buildActionMenu(item),
+                                ],
                               ],
                             ),
                             const SizedBox(height: 6),
@@ -353,6 +437,76 @@ class _PanelContainerPageState extends State<PanelContainerPage> {
         ),
       ),
     );
+  }
+
+  Widget _buildActionMenu(PanelContainerItem item) {
+    final actions = _availableActions(item.state);
+    if (actions.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return PopupMenuButton<String>(
+      tooltip: '操作',
+      icon: const Icon(Icons.more_vert, size: 20),
+      padding: EdgeInsets.zero,
+      onSelected: (action) => _operate(item, action),
+      itemBuilder: (context) => actions
+          .map(
+            (action) => PopupMenuItem<String>(
+              value: action,
+              child: Row(
+                children: [
+                  Icon(
+                    _actionIcon(action),
+                    size: 18,
+                    color: action == 'stop' || action == 'kill'
+                        ? Theme.of(context).colorScheme.error
+                        : null,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(_actionLabel(action)),
+                ],
+              ),
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  String _actionLabel(String action) {
+    switch (action) {
+      case 'start':
+        return '启动';
+      case 'stop':
+        return '停止';
+      case 'restart':
+        return '重启';
+      case 'pause':
+        return '暂停';
+      case 'unpause':
+        return '恢复';
+      case 'kill':
+        return '强制终止';
+      default:
+        return action;
+    }
+  }
+
+  IconData _actionIcon(String action) {
+    switch (action) {
+      case 'start':
+      case 'unpause':
+        return Icons.play_arrow_outlined;
+      case 'stop':
+        return Icons.stop_outlined;
+      case 'restart':
+        return Icons.restart_alt_outlined;
+      case 'pause':
+        return Icons.pause_outlined;
+      case 'kill':
+        return Icons.flash_on_outlined;
+      default:
+        return Icons.bolt_outlined;
+    }
   }
 
   Color _stateColor(String state) {

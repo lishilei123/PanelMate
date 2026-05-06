@@ -106,7 +106,7 @@ class _PanelBackupPageState extends State<PanelBackupPage> {
                 ),
               const PanelModuleSectionTitle(
                 title: '备份概览',
-                subtitle: '真实读取备份账户与备份记录接口，当前为只读巡检页。',
+                subtitle: '查看备份账户与备份记录（当前为只读巡检页）。',
               ),
               const SizedBox(height: 12),
               _BackupSummary(data: data),
@@ -131,7 +131,7 @@ class _PanelBackupPageState extends State<PanelBackupPage> {
                 const PanelModuleEmptyCard(
                   icon: Icons.backup_outlined,
                   title: '当前没有备份账户',
-                  subtitle: '接口已经接通，但该服务器没有返回任何备份账户。',
+                  subtitle: '当前服务器暂无备份账户。',
                 )
               else ...[
                 Wrap(

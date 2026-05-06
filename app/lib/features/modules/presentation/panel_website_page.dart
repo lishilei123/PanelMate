@@ -152,7 +152,7 @@ class _PanelWebsitePageState extends State<PanelWebsitePage> {
                 ),
               const PanelModuleSectionTitle(
                 title: '站点概览',
-                subtitle: '真实读取网站搜索接口，展示域名、协议、SSL 与运行状态。',
+                subtitle: '展示站点的域名、协议、SSL 与运行状态。',
               ),
               const SizedBox(height: 12),
               _WebsiteSummary(payload: payload),
@@ -177,7 +177,7 @@ class _PanelWebsitePageState extends State<PanelWebsitePage> {
                 const PanelModuleEmptyCard(
                   icon: Icons.language_outlined,
                   title: '当前没有网站',
-                  subtitle: '接口已经接通，但该服务器没有返回任何网站条目。',
+                  subtitle: '当前服务器暂无网站条目。',
                 )
               else
                 ...payload.items.map(

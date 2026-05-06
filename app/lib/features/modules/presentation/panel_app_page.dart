@@ -29,11 +29,142 @@ class _PanelAppPageState extends State<PanelAppPage> {
   PanelPagedPayload<PanelAppItem>? _payload;
   String? _errorMessage;
   bool _isLoading = true;
+  final Set<int> _operatingIds = <int>{};
 
   @override
   void initState() {
     super.initState();
     unawaited(_load());
+  }
+
+  Future<void> _operate(PanelAppItem item, String action) async {
+    final label = _actionLabel(action);
+    final displayName = item.appName.isEmpty ? item.name : item.appName;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('$label 应用'),
+        content: Text('确定要$label「$displayName」吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: action == 'down'
+                  ? Theme.of(ctx).colorScheme.error
+                  : Theme.of(ctx).colorScheme.primary,
+            ),
+            child: Text(label),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _operatingIds.add(item.id));
+    try {
+      await widget.service.operateApp(
+        widget.server,
+        installId: item.id,
+        operate: action,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('已$label「$displayName」。')),
+      );
+      await _load();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '$label失败：${PanelErrorMessageResolver.resolve(error)}',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _operatingIds.remove(item.id));
+    }
+  }
+
+  List<String> _availableActions(String status) {
+    final lower = status.toLowerCase();
+    if (lower == 'running') {
+      return const ['down', 'restart'];
+    }
+    if (lower == 'stopped' ||
+        lower == 'exited' ||
+        lower == 'failed' ||
+        lower == 'error') {
+      return const ['up'];
+    }
+    if (lower.contains('install') || lower == 'waiting') {
+      return const [];
+    }
+    return const ['up', 'down', 'restart'];
+  }
+
+  String _actionLabel(String action) {
+    switch (action) {
+      case 'up':
+        return '启动';
+      case 'down':
+        return '停止';
+      case 'restart':
+        return '重启';
+      default:
+        return action;
+    }
+  }
+
+  IconData _actionIcon(String action) {
+    switch (action) {
+      case 'up':
+        return Icons.play_arrow_outlined;
+      case 'down':
+        return Icons.stop_outlined;
+      case 'restart':
+        return Icons.restart_alt_outlined;
+      default:
+        return Icons.bolt_outlined;
+    }
+  }
+
+  Widget _buildActionMenu(PanelAppItem item) {
+    final actions = _availableActions(item.status);
+    if (actions.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return PopupMenuButton<String>(
+      tooltip: '操作',
+      icon: const Icon(Icons.more_vert, size: 20),
+      padding: EdgeInsets.zero,
+      onSelected: (action) => _operate(item, action),
+      itemBuilder: (context) => actions
+          .map(
+            (action) => PopupMenuItem<String>(
+              value: action,
+              child: Row(
+                children: [
+                  Icon(
+                    _actionIcon(action),
+                    size: 18,
+                    color: action == 'down'
+                        ? Theme.of(context).colorScheme.error
+                        : null,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(_actionLabel(action)),
+                ],
+              ),
+            ),
+          )
+          .toList(growable: false),
+    );
   }
 
   Future<void> _load() async {
@@ -101,7 +232,7 @@ class _PanelAppPageState extends State<PanelAppPage> {
                 ),
               const PanelModuleSectionTitle(
                 title: '应用概览',
-                subtitle: '真实读取已安装应用列表，展示版本、运行状态和访问端口。',
+                subtitle: '展示已安装应用的版本、运行状态与访问端口。',
               ),
               const SizedBox(height: 12),
               _AppSummary(payload: payload),
@@ -119,14 +250,14 @@ class _PanelAppPageState extends State<PanelAppPage> {
               ],
               const PanelModuleSectionTitle(
                 title: '已安装应用',
-                subtitle: '当前先做真实只读展示，后续再补应用操作。',
+                subtitle: '查看面板已安装的应用列表与基础信息。',
               ),
               const SizedBox(height: 12),
               if (payload.isEmpty)
                 const PanelModuleEmptyCard(
                   icon: Icons.widgets_outlined,
                   title: '当前没有已安装应用',
-                  subtitle: '接口已经接通，但当前服务器没有返回已安装应用。',
+                  subtitle: '当前服务器暂无已安装应用。',
                 )
               else
                 ...payload.items.map(
@@ -151,10 +282,22 @@ class _PanelAppPageState extends State<PanelAppPage> {
                                       ),
                                 ),
                               ),
-                              StatusChip(
-                                label: _statusLabel(item.status),
-                                color: _statusColor(item.status),
-                              ),
+                              if (_operatingIds.contains(item.id))
+                                const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              else ...[
+                                StatusChip(
+                                  label: _statusLabel(item.status),
+                                  color: _statusColor(item.status),
+                                ),
+                                const SizedBox(width: 4),
+                                _buildActionMenu(item),
+                              ],
                             ],
                           ),
                           const SizedBox(height: 6),

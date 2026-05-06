@@ -287,20 +287,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('自动锁定时间配置可以在下一阶段补齐。')),
-                  );
-                },
-              ),
-              const Divider(),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.verified_outlined),
-                title: const Text('证书信任'),
-                subtitle: const Text('管理 HTTPS 证书指纹与安全提示'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('证书信任页可以后续接入。')),
+                    const SnackBar(content: Text('自动锁定时间配置即将上线。')),
                   );
                 },
               ),

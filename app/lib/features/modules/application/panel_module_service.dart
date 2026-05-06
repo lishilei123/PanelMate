@@ -186,6 +186,32 @@ class PanelModuleService {
     });
   }
 
+  Future<void> operateContainer(
+    PanelServerConnectionProfile server, {
+    required String name,
+    required String operation,
+  }) {
+    return _withSession(server, (session) async {
+      await session.bundle.container.operateContainer(<String, dynamic>{
+        'names': <String>[name],
+        'operation': operation,
+      });
+    });
+  }
+
+  Future<void> operateApp(
+    PanelServerConnectionProfile server, {
+    required int installId,
+    required String operate,
+  }) {
+    return _withSession(server, (session) async {
+      await session.bundle.app.operateInstalledApp(<String, dynamic>{
+        'installId': installId,
+        'operate': operate,
+      });
+    });
+  }
+
   Future<PanelBackupPageData> loadBackups(
     PanelServerConnectionProfile server, {
     String? preferredType,

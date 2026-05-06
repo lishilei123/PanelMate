@@ -99,7 +99,7 @@ class AiPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '先沉淀模块入口和数据边界，后续接入真实模型服务。',
+                      '面向运维场景的智能助手，辅助分析与日常运维。',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: const Color(0xFF647181),
                           ),

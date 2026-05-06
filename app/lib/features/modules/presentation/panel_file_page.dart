@@ -221,7 +221,7 @@ class _PanelFilePageState extends State<PanelFilePage> {
                 ),
               const PanelModuleSectionTitle(
                 title: '文件浏览',
-                subtitle: '真实读取文件搜索与文件内容接口，当前只提供只读浏览。',
+                subtitle: '浏览服务器上的文件目录与内容（当前为只读模式）。',
               ),
               const SizedBox(height: 12),
               PanelCard(

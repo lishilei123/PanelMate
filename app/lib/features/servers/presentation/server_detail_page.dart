@@ -268,7 +268,7 @@ class _ServerDetailPageState extends State<ServerDetailPage> {
             const SizedBox(height: 18),
             const _SectionTitle(
               title: '实时资源',
-              subtitle: '这里使用已接通的总览实时数据，方便先看整体负载。',
+              subtitle: '查看 CPU、内存、磁盘等实时负载情况。',
             ),
             const SizedBox(height: 12),
             PanelCard(
@@ -347,8 +347,8 @@ class _ServerDetailPageState extends State<ServerDetailPage> {
             ),
             const SizedBox(height: 18),
             const _SectionTitle(
-              title: '真实模块入口',
-              subtitle: '这 6 个模块页面已经切到真实 1Panel 接口，不再使用占位数据。',
+              title: '功能模块',
+              subtitle: '点击进入对应模块，查看详细数据与执行操作。',
             ),
             const SizedBox(height: 12),
             GridView.builder(
@@ -410,8 +410,8 @@ class _ServerDetailPageState extends State<ServerDetailPage> {
             ),
             const SizedBox(height: 18),
             const _SectionTitle(
-              title: '最近操作',
-              subtitle: '真实读取 1Panel 操作日志接口，便于快速定位最近变更。',
+              title: '面板操作日志',
+              subtitle: '展示面板最近的操作记录，便于快速定位变更与排查问题。',
             ),
             const SizedBox(height: 12),
             if (_isLoadingOperations && _operations.isEmpty)

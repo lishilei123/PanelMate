@@ -476,7 +476,7 @@ class _PanelHomeShellPageState extends State<PanelHomeShellPage> {
 
       if (showSuccessMessage) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${server.name} 已同步真实数据。')),
+          SnackBar(content: Text('${server.name} 数据已刷新。')),
         );
       }
 

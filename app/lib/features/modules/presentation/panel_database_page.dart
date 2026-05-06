@@ -101,7 +101,7 @@ class _PanelDatabasePageState extends State<PanelDatabasePage> {
                 ),
               const PanelModuleSectionTitle(
                 title: '数据库概览',
-                subtitle: '真实读取数据库搜索接口，优先展示库名与来源信息。',
+                subtitle: '展示已接入的数据库列表、库名与来源信息。',
               ),
               const SizedBox(height: 12),
               _DatabaseSummary(payload: payload),
@@ -119,14 +119,14 @@ class _PanelDatabasePageState extends State<PanelDatabasePage> {
               ],
               const PanelModuleSectionTitle(
                 title: '数据库列表',
-                subtitle: '当前页面为真实只读页，先把基础列表展示稳定。',
+                subtitle: '查看面板已接入的数据库及其基础信息。',
               ),
               const SizedBox(height: 12),
               if (payload.isEmpty)
                 const PanelModuleEmptyCard(
                   icon: Icons.storage_outlined,
                   title: '当前没有数据库',
-                  subtitle: '接口已经接通，但当前服务器没有返回数据库记录。',
+                  subtitle: '当前服务器暂无数据库记录。',
                 )
               else
                 ...payload.items.map(
