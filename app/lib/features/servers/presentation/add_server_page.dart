@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../core/network/panel_endpoint_parser.dart';
 import '../../../core/panel/models/api_version.dart';
 import '../../../core/panel/models/compatibility_flags.dart';
+import '../../../core/panel/models/panel_api_exception.dart';
 import '../../../core/panel/models/panel_error_message_resolver.dart';
 import '../../../core/panel/models/server_connection_profile.dart';
 import '../../../core/panel/probe/panel_version_probe_result.dart';
@@ -14,13 +15,20 @@ import '../../../shared/widgets/panel_card.dart';
 import '../../../shared/widgets/status_chip.dart';
 import '../application/server_connection_tester.dart';
 
+typedef PanelServerConnectionTest = Future<PanelVersionProbeResult> Function(
+  PanelServerConnectionProfile server, {
+  PanelLoginCaptchaResolver? captchaResolver,
+});
+
 class AddServerPage extends StatefulWidget {
   const AddServerPage({
     super.key,
     this.initialServer,
+    this.connectionTester = ServerConnectionTester.test,
   });
 
   final PanelServerConnectionProfile? initialServer;
+  final PanelServerConnectionTest connectionTester;
 
   @override
   State<AddServerPage> createState() => _AddServerPageState();
@@ -43,6 +51,7 @@ class _AddServerPageState extends State<AddServerPage> {
   String _protocol = 'https';
   PanelVersionProbeResult? _probeResult;
   String? _testErrorMessage;
+  bool _lastTestFailedForMfa = false;
   bool _didTest = false;
   bool _isTesting = false;
   bool _isApplyingParsedAddress = false;
@@ -102,10 +111,11 @@ class _AddServerPageState extends State<AddServerPage> {
       _didTest = true;
       _probeResult = null;
       _testErrorMessage = null;
+      _lastTestFailedForMfa = false;
     });
 
     try {
-      final result = await ServerConnectionTester.test(
+      final result = await widget.connectionTester(
         _buildProfile(),
         captchaResolver: _resolveLoginCaptcha,
       );
@@ -124,6 +134,7 @@ class _AddServerPageState extends State<AddServerPage> {
       setState(() {
         _probeResult = null;
         _testErrorMessage = message;
+        _lastTestFailedForMfa = _isMfaError(error, message);
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('连接测试失败：$message')),
@@ -146,6 +157,23 @@ class _AddServerPageState extends State<AddServerPage> {
       barrierDismissible: false,
       builder: (context) => _CaptchaInputDialog(challenge: challenge),
     );
+  }
+
+  bool _isMfaError(Object error, String resolvedMessage) {
+    if (error is PanelApiException && error.code == 'mfa_required') {
+      return true;
+    }
+    return resolvedMessage.contains('MFA') && resolvedMessage.contains('API Key');
+  }
+
+  void _switchToApiKeyAuth() {
+    setState(() {
+      _authMode = PanelAuthMode.apiKey;
+      _probeResult = null;
+      _testErrorMessage = null;
+      _lastTestFailedForMfa = false;
+      _didTest = false;
+    });
   }
 
   void _submit() {
@@ -400,6 +428,13 @@ class _AddServerPageState extends State<AddServerPage> {
                         validator: _required,
                         onChanged: (_) => _invalidateTestResult(),
                       ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '如果该账号开启了 MFA，当前建议改用 API Key 接入。',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFF647181),
+                            ),
+                      ),
                     ] else ...[
                       TextFormField(
                         key: const ValueKey('add_server.api_key'),
@@ -463,7 +498,13 @@ class _AddServerPageState extends State<AddServerPage> {
                     ),
                     const SizedBox(height: 12),
                     if (_testErrorMessage != null) ...[
-                      _ErrorNotice(message: _testErrorMessage!),
+                      _ErrorNotice(
+                        message: _testErrorMessage!,
+                        actionLabel:
+                            _lastTestFailedForMfa ? '切换为 API Key' : null,
+                        onAction:
+                            _lastTestFailedForMfa ? _switchToApiKeyAuth : null,
+                      ),
                       const SizedBox(height: 12),
                     ],
                     if (_probeResult != null)
@@ -848,12 +889,19 @@ class _ConnectionIntro extends StatelessWidget {
 class _ErrorNotice extends StatelessWidget {
   const _ErrorNotice({
     required this.message,
+    this.actionLabel,
+    this.onAction,
   });
 
   final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
+    final actionLabel = this.actionLabel;
+    final onAction = this.onAction;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -862,12 +910,26 @@ class _ErrorNotice extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFE5B5B5)),
       ),
-      child: Text(
-        message,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF9F2F2F),
-              fontWeight: FontWeight.w600,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            message,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF9F2F2F),
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              key: const ValueKey('add_server.switch_to_api_key'),
+              onPressed: onAction,
+              icon: const Icon(Icons.key_outlined),
+              label: Text(actionLabel),
             ),
+          ],
+        ],
       ),
     );
   }

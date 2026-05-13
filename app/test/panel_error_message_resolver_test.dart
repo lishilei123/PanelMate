@@ -139,5 +139,32 @@ void main() {
 
       expect(message, contains('API Key 无效'));
     });
+
+    test('maps mfa required errors to api key guidance', () {
+      final message = PanelErrorMessageResolver.resolve(
+        const PanelApiException(
+          'This account requires MFA verification.',
+          code: 'mfa_required',
+        ),
+      );
+
+      expect(message, contains('MFA'));
+      expect(message, contains('API Key'));
+      expect(message, contains('重新测试'));
+    });
+
+    test('maps panel mfa business error to api key guidance', () {
+      final message = PanelErrorMessageResolver.resolve(
+        const PanelApiException(
+          'ErrMFA',
+          code: 'panel_response_error',
+          statusCode: 401,
+        ),
+      );
+
+      expect(message, contains('MFA'));
+      expect(message, contains('API Key'));
+      expect(message, isNot(contains('ErrMFA')));
+    });
   });
 }

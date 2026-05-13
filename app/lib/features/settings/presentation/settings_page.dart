@@ -26,8 +26,10 @@ class SettingsPage extends StatefulWidget {
     required this.gradientThemeId,
     required this.gradientTheme,
     required this.customGradientTheme,
+    required this.securitySettings,
     required this.onGradientThemeChanged,
     required this.onCustomGradientThemeChanged,
+    required this.onSecuritySettingsChanged,
   });
 
   final List<PanelServerConnectionProfile> servers;
@@ -38,17 +40,58 @@ class SettingsPage extends StatefulWidget {
   final String gradientThemeId;
   final PanelGradientTheme gradientTheme;
   final PanelGradientTheme customGradientTheme;
+  final PanelSecuritySettings securitySettings;
   final Future<void> Function(String value) onGradientThemeChanged;
   final Future<void> Function(PanelGradientTheme gradientTheme)
       onCustomGradientThemeChanged;
+  final Future<void> Function(PanelSecuritySettings settings)
+      onSecuritySettingsChanged;
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool _biometricEnabled = true;
-  bool _backgroundBlurEnabled = true;
+  Future<void> _handleSecuritySettingsChange(
+    PanelSecuritySettings settings,
+  ) async {
+    try {
+      await widget.onSecuritySettingsChanged(settings);
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('安全设置已更新')),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('保存安全设置失败：$error')),
+      );
+    }
+  }
+
+  Future<void> _openAutoLockIntervalSheet() async {
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return _AutoLockIntervalSheet(
+          selectedInterval: widget.securitySettings.autoLockInterval,
+        );
+      },
+    );
+
+    if (result == null) {
+      return;
+    }
+
+    await _handleSecuritySettingsChange(
+      widget.securitySettings.copyWith(autoLockInterval: result),
+    );
+  }
 
   Future<void> _handleGradientThemeSelection(
     PanelGradientTheme gradientTheme,
@@ -263,33 +306,49 @@ class _SettingsPageState extends State<SettingsPage> {
           child: Column(
             children: [
               SwitchListTile.adaptive(
+                key: const ValueKey('settings.app_lock'),
                 contentPadding: EdgeInsets.zero,
-                value: _biometricEnabled,
-                onChanged: (value) => setState(() => _biometricEnabled = value),
-                title: const Text('启用生物识别'),
-                subtitle: const Text('进入应用或敏感操作前进行二次验证'),
+                value: widget.securitySettings.appLockEnabled,
+                onChanged: (value) {
+                  unawaited(
+                    _handleSecuritySettingsChange(
+                      widget.securitySettings.copyWith(appLockEnabled: value),
+                    ),
+                  );
+                },
+                title: const Text('启用应用锁'),
+                subtitle: const Text('应用闲置或从后台返回后显示锁定遮罩'),
               ),
               const Divider(),
               SwitchListTile.adaptive(
+                key: const ValueKey('settings.background_blur'),
                 contentPadding: EdgeInsets.zero,
-                value: _backgroundBlurEnabled,
-                onChanged: (value) =>
-                    setState(() => _backgroundBlurEnabled = value),
+                value: widget.securitySettings.backgroundBlurEnabled,
+                onChanged: (value) {
+                  unawaited(
+                    _handleSecuritySettingsChange(
+                      widget.securitySettings.copyWith(
+                        backgroundBlurEnabled: value,
+                      ),
+                    ),
+                  );
+                },
                 title: const Text('后台自动模糊'),
-                subtitle: const Text('应用切到后台后隐藏敏感信息'),
+                subtitle: const Text('应用切到后台或任务切换时隐藏敏感信息'),
               ),
               const Divider(),
               ListTile(
+                key: const ValueKey('settings.auto_lock_interval'),
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.timer_outlined),
                 title: const Text('自动锁定时间'),
-                subtitle: const Text('5 分钟无操作后重新验证'),
+                subtitle: Text(
+                  _autoLockIntervalDescription(
+                    widget.securitySettings.autoLockInterval,
+                  ),
+                ),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('自动锁定时间配置即将上线。')),
-                  );
-                },
+                onTap: _openAutoLockIntervalSheet,
               ),
             ],
           ),
@@ -362,6 +421,77 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ),
       ],
+    );
+  }
+}
+
+String _autoLockIntervalDescription(String value) {
+  switch (PanelAppSettingsRepository.normalizeAutoLockInterval(value)) {
+    case PanelAppSettingsRepository.disabledAutoLockInterval:
+      return '关闭';
+    case '1m':
+      return '1 分钟无操作后锁定';
+    case '5m':
+      return '5 分钟无操作后锁定';
+    case '15m':
+      return '15 分钟无操作后锁定';
+    case '30m':
+      return '30 分钟无操作后锁定';
+    default:
+      return '5 分钟无操作后锁定';
+  }
+}
+
+class _AutoLockIntervalSheet extends StatelessWidget {
+  const _AutoLockIntervalSheet({
+    required this.selectedInterval,
+  });
+
+  final String selectedInterval;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected =
+        PanelAppSettingsRepository.normalizeAutoLockInterval(selectedInterval);
+
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '自动锁定时间',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '应用锁开启后，前台闲置或从后台返回超过设定时间会显示锁定遮罩。',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF66717F),
+                  ),
+            ),
+            const SizedBox(height: 12),
+            for (final option
+                in PanelAppSettingsRepository.supportedAutoLockIntervals)
+              ListTile(
+                key: ValueKey('settings.auto_lock_interval.$option'),
+                contentPadding: EdgeInsets.zero,
+                title: Text(_autoLockIntervalDescription(option)),
+                trailing: selected == option
+                    ? Icon(
+                        Icons.check_circle,
+                        color: Theme.of(context).colorScheme.primary,
+                      )
+                    : null,
+                onTap: () => Navigator.of(context).pop(option),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

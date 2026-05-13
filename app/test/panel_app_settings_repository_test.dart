@@ -93,5 +93,75 @@ void main() {
         const Duration(seconds: 15),
       );
     });
+
+    test('returns default security settings when nothing is stored', () async {
+      final settings = await repository.loadSecuritySettings();
+
+      expect(settings.appLockEnabled, isTrue);
+      expect(settings.backgroundBlurEnabled, isTrue);
+      expect(
+        settings.autoLockInterval,
+        PanelAppSettingsRepository.defaultAutoLockInterval,
+      );
+    });
+
+    test('saves and restores security settings', () async {
+      const settings = PanelSecuritySettings(
+        appLockEnabled: false,
+        backgroundBlurEnabled: false,
+        autoLockInterval: '15m',
+      );
+
+      await repository.saveSecuritySettings(settings);
+
+      final restored = await repository.loadSecuritySettings();
+      expect(restored.appLockEnabled, isFalse);
+      expect(restored.backgroundBlurEnabled, isFalse);
+      expect(restored.autoLockInterval, '15m');
+    });
+
+    test('normalizes invalid auto lock interval back to default', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        PanelAppSettingsRepository.autoLockIntervalStorageKey: '7m',
+      });
+
+      final settings = await repository.loadSecuritySettings();
+
+      expect(
+        settings.autoLockInterval,
+        PanelAppSettingsRepository.defaultAutoLockInterval,
+      );
+
+      final preferences = await SharedPreferences.getInstance();
+      expect(
+        preferences.getString(
+          PanelAppSettingsRepository.autoLockIntervalStorageKey,
+        ),
+        PanelAppSettingsRepository.defaultAutoLockInterval,
+      );
+    });
+
+    test('maps auto lock intervals to durations', () {
+      expect(
+        PanelAppSettingsRepository.durationForAutoLockInterval('关闭'),
+        isNull,
+      );
+      expect(
+        PanelAppSettingsRepository.durationForAutoLockInterval('1m'),
+        const Duration(minutes: 1),
+      );
+      expect(
+        PanelAppSettingsRepository.durationForAutoLockInterval('5m'),
+        const Duration(minutes: 5),
+      );
+      expect(
+        PanelAppSettingsRepository.durationForAutoLockInterval('15m'),
+        const Duration(minutes: 15),
+      );
+      expect(
+        PanelAppSettingsRepository.durationForAutoLockInterval('30m'),
+        const Duration(minutes: 30),
+      );
+    });
   });
 }

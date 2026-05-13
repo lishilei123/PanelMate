@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:panelmate/core/panel/models/api_version.dart';
+import 'package:panelmate/core/panel/models/panel_api_exception.dart';
 import 'package:panelmate/core/panel/models/server_connection_profile.dart';
 import 'package:panelmate/core/panel/runtime/panel_api_session.dart';
 import 'package:panelmate/core/panel/storage/panel_auth_data_store.dart';
@@ -239,6 +240,47 @@ void main() {
       expect(loginBodies.first['captchaID'], 'captcha-a');
       expect(loginBodies.last['captcha'], 'right');
       expect(loginBodies.last['captchaID'], 'captcha-b');
+    });
+
+    test('throws explicit mfa_required when account requires MFA', () async {
+      final mockClient = MockClient((request) async {
+        if (request.url.path == '/api/v2/core/auth/setting') {
+          return _panelResponse(
+            <String, dynamic>{'needCaptcha': false},
+            headers: _publicKeyCookieHeader,
+          );
+        }
+
+        if (request.url.path == '/api/v2/core/auth/login') {
+          return _panelResponse(
+            <String, dynamic>{
+              'name': 'admin',
+              'token': '',
+              'mfaStatus': 'Enable',
+              'mfaSession': 'mfa-a',
+            },
+            headers: _sessionCookieHeader('session-a', 'csrf-a'),
+          );
+        }
+
+        return _panelResponse(<String, dynamic>{'ok': true});
+      });
+
+      final factory = PanelApiSessionFactory(
+        authDataStore: authDataStore,
+        httpClient: mockClient,
+      );
+
+      await expectLater(
+        factory.createSession(_accountPasswordServer),
+        throwsA(
+          isA<PanelApiException>().having(
+            (error) => error.code,
+            'code',
+            'mfa_required',
+          ),
+        ),
+      );
     });
 
     test('uses cached account-password session without logging in again',

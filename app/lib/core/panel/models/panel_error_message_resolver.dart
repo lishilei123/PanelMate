@@ -49,7 +49,7 @@ class PanelErrorMessageResolver {
       case 'captcha_cancelled':
         return '已取消验证码输入，登录测试未继续。';
       case 'mfa_required':
-        return '当前账号开启了 MFA，账号密码自动登录暂不支持二次验证码，请改用 API Key 接入。';
+        return _mfaApiKeyGuidance();
       case 'unmapped_feature':
         return error.message;
       case 'request_timeout':
@@ -91,7 +91,7 @@ class PanelErrorMessageResolver {
       case 'ErrLoginLocked':
         return '失败次数过多，1Panel 已临时锁定登录，请等待 5 分钟后再试。';
       case 'ErrMFA':
-        return '当前账号开启了 MFA，账号密码自动同步暂不支持二次验证码，请改用 API Key 接入。';
+        return _mfaApiKeyGuidance();
       case 'ErrNotLogin':
         return '登录状态已失效，请重新同步；如果使用账号密码接入，建议改用 API Key。';
     }
@@ -132,6 +132,10 @@ class PanelErrorMessageResolver {
         lower.contains('public key') ||
         lower.contains('set-cookie') ||
         lower.contains('cookie');
+  }
+
+  static String _mfaApiKeyGuidance() {
+    return '当前 1Panel 账号已开启 MFA，PanelMate 账号密码接入暂不支持二次验证码。请在 1Panel 后台创建 API Key / 接口密钥，并在 PanelMate 中切换为 API Key 接入后重新测试。';
   }
 
   static String _loginCookieMessage(String detail) {

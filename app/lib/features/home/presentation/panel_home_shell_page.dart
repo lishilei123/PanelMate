@@ -24,8 +24,10 @@ class PanelHomeShellPage extends StatefulWidget {
     required this.gradientThemeId,
     required this.gradientTheme,
     required this.customGradientTheme,
+    required this.securitySettings,
     required this.onGradientThemeChanged,
     required this.onCustomGradientThemeChanged,
+    required this.onSecuritySettingsChanged,
   });
 
   final PanelServerRepository repository;
@@ -33,9 +35,12 @@ class PanelHomeShellPage extends StatefulWidget {
   final String gradientThemeId;
   final PanelGradientTheme gradientTheme;
   final PanelGradientTheme customGradientTheme;
+  final PanelSecuritySettings securitySettings;
   final Future<void> Function(String value) onGradientThemeChanged;
   final Future<void> Function(PanelGradientTheme gradientTheme)
       onCustomGradientThemeChanged;
+  final Future<void> Function(PanelSecuritySettings settings)
+      onSecuritySettingsChanged;
 
   @override
   State<PanelHomeShellPage> createState() => _PanelHomeShellPageState();
@@ -98,8 +103,10 @@ class _PanelHomeShellPageState extends State<PanelHomeShellPage> {
         gradientThemeId: widget.gradientThemeId,
         gradientTheme: widget.gradientTheme,
         customGradientTheme: widget.customGradientTheme,
+        securitySettings: widget.securitySettings,
         onGradientThemeChanged: widget.onGradientThemeChanged,
         onCustomGradientThemeChanged: widget.onCustomGradientThemeChanged,
+        onSecuritySettingsChanged: widget.onSecuritySettingsChanged,
       ),
     ];
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:panelmate/core/panel/models/api_version.dart';
+import 'package:panelmate/core/panel/models/panel_api_exception.dart';
 import 'package:panelmate/core/panel/models/compatibility_flags.dart';
 import 'package:panelmate/core/panel/models/server_connection_profile.dart';
 import 'package:panelmate/features/servers/presentation/add_server_page.dart';
@@ -55,6 +56,66 @@ void main() {
           .initialValue,
       'http',
     );
+  });
+
+  testWidgets('mfa test failure can switch auth mode to api key', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AddServerPage(
+          connectionTester: (server, {captchaResolver}) async {
+            throw const PanelApiException(
+              'This account requires MFA verification.',
+              code: 'mfa_required',
+            );
+          },
+        ),
+      ),
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('add_server.name')),
+      'Demo',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('add_server.address')),
+      'panel.example.com',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('add_server.username')),
+      'admin',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('add_server.password')),
+      'secret',
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('add_server.test_connection')),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('add_server.test_connection')));
+    await tester.pumpAndSettle();
+
+    final switchButton = find.byKey(
+      const ValueKey('add_server.switch_to_api_key'),
+    );
+    expect(find.textContaining('MFA'), findsWidgets);
+    expect(switchButton, findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      switchButton,
+      160,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(switchButton);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('add_server.api_key')), findsOneWidget);
   });
 
   testWidgets(
