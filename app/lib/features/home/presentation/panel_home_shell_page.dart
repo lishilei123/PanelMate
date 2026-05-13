@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/panel_gradient_theme.dart';
 import '../../../core/panel/models/panel_error_message_resolver.dart';
+import '../../../core/panel/models/panel_security_settings.dart';
 import '../../../core/panel/models/server_connection_profile.dart';
 import '../../../core/panel/runtime/panel_runtime_service.dart';
 import '../../../core/panel/runtime/panel_server_runtime_state.dart';
@@ -277,10 +278,13 @@ class _PanelHomeShellPageState extends State<PanelHomeShellPage> {
   }
 
   Future<void> _restoreServers() async {
+    final pollingIntervalFuture =
+        widget.settingsRepository.loadPollingInterval();
+    final serversFuture = widget.repository.loadServers();
     var pollingInterval = PanelAppSettingsRepository.defaultPollingInterval;
 
     try {
-      pollingInterval = await widget.settingsRepository.loadPollingInterval();
+      pollingInterval = await pollingIntervalFuture;
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -290,7 +294,7 @@ class _PanelHomeShellPageState extends State<PanelHomeShellPage> {
     }
 
     try {
-      final storedServers = await widget.repository.loadServers();
+      final storedServers = await serversFuture;
       if (!mounted) {
         return;
       }

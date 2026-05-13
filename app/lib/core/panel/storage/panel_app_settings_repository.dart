@@ -1,5 +1,8 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/panel_custom_gradient_theme_colors.dart';
+import '../models/panel_security_settings.dart';
+
 class PanelAppSettingsRepository {
   const PanelAppSettingsRepository();
 
@@ -104,18 +107,17 @@ class PanelAppSettingsRepository {
       ),
     );
 
-    await preferences.setInt(
-      customGradientPrimaryStorageKey,
-      colors.primaryValue,
-    );
-    await preferences.setInt(
-      customGradientSecondaryStorageKey,
-      colors.secondaryValue,
-    );
-    await preferences.setInt(
-      customGradientTertiaryStorageKey,
-      colors.tertiaryValue,
-    );
+    await Future.wait<void>([
+      preferences.setInt(customGradientPrimaryStorageKey, colors.primaryValue),
+      preferences.setInt(
+        customGradientSecondaryStorageKey,
+        colors.secondaryValue,
+      ),
+      preferences.setInt(
+        customGradientTertiaryStorageKey,
+        colors.tertiaryValue,
+      ),
+    ]);
 
     return colors;
   }
@@ -124,27 +126,29 @@ class PanelAppSettingsRepository {
     PanelCustomGradientThemeColors colors,
   ) async {
     final preferences = await SharedPreferences.getInstance();
-    await preferences.setInt(
-      customGradientPrimaryStorageKey,
-      normalizeColorValue(
-        colors.primaryValue,
-        defaultCustomGradientPrimaryValue,
+    await Future.wait<void>([
+      preferences.setInt(
+        customGradientPrimaryStorageKey,
+        normalizeColorValue(
+          colors.primaryValue,
+          defaultCustomGradientPrimaryValue,
+        ),
       ),
-    );
-    await preferences.setInt(
-      customGradientSecondaryStorageKey,
-      normalizeColorValue(
-        colors.secondaryValue,
-        defaultCustomGradientSecondaryValue,
+      preferences.setInt(
+        customGradientSecondaryStorageKey,
+        normalizeColorValue(
+          colors.secondaryValue,
+          defaultCustomGradientSecondaryValue,
+        ),
       ),
-    );
-    await preferences.setInt(
-      customGradientTertiaryStorageKey,
-      normalizeColorValue(
-        colors.tertiaryValue,
-        defaultCustomGradientTertiaryValue,
+      preferences.setInt(
+        customGradientTertiaryStorageKey,
+        normalizeColorValue(
+          colors.tertiaryValue,
+          defaultCustomGradientTertiaryValue,
+        ),
       ),
-    );
+    ]);
   }
 
   Future<PanelSecuritySettings> loadSecuritySettings() async {
@@ -181,18 +185,17 @@ class PanelAppSettingsRepository {
 
   Future<void> saveSecuritySettings(PanelSecuritySettings settings) async {
     final preferences = await SharedPreferences.getInstance();
-    await preferences.setBool(
-      appLockEnabledStorageKey,
-      settings.appLockEnabled,
-    );
-    await preferences.setBool(
-      backgroundBlurEnabledStorageKey,
-      settings.backgroundBlurEnabled,
-    );
-    await preferences.setString(
-      autoLockIntervalStorageKey,
-      normalizeAutoLockInterval(settings.autoLockInterval),
-    );
+    await Future.wait<void>([
+      preferences.setBool(appLockEnabledStorageKey, settings.appLockEnabled),
+      preferences.setBool(
+        backgroundBlurEnabledStorageKey,
+        settings.backgroundBlurEnabled,
+      ),
+      preferences.setString(
+        autoLockIntervalStorageKey,
+        normalizeAutoLockInterval(settings.autoLockInterval),
+      ),
+    ]);
   }
 
   static String normalizePollingInterval(String? value) {
@@ -258,39 +261,3 @@ class PanelAppSettingsRepository {
   }
 }
 
-class PanelCustomGradientThemeColors {
-  const PanelCustomGradientThemeColors({
-    required this.primaryValue,
-    required this.secondaryValue,
-    required this.tertiaryValue,
-  });
-
-  final int primaryValue;
-  final int secondaryValue;
-  final int tertiaryValue;
-}
-
-class PanelSecuritySettings {
-  const PanelSecuritySettings({
-    required this.appLockEnabled,
-    required this.backgroundBlurEnabled,
-    required this.autoLockInterval,
-  });
-
-  final bool appLockEnabled;
-  final bool backgroundBlurEnabled;
-  final String autoLockInterval;
-
-  PanelSecuritySettings copyWith({
-    bool? appLockEnabled,
-    bool? backgroundBlurEnabled,
-    String? autoLockInterval,
-  }) {
-    return PanelSecuritySettings(
-      appLockEnabled: appLockEnabled ?? this.appLockEnabled,
-      backgroundBlurEnabled:
-          backgroundBlurEnabled ?? this.backgroundBlurEnabled,
-      autoLockInterval: autoLockInterval ?? this.autoLockInterval,
-    );
-  }
-}

@@ -4,7 +4,12 @@
       "Bash(flutter analyze *)",
       "Bash(flutter test *)",
       "Bash(dart analyze *)",
-      "Bash(flutter build *)"
+      "Bash(flutter build *)",
+      "Bash(sed -n '32,52p' /c/Users/Shilei/Desktop/VSCode/PanelMate/app/lib/core/panel/storage/panel_app_settings_repository.dart)",
+      "Bash(sed -n '198,241p' /c/Users/Shilei/Desktop/VSCode/PanelMate/app/lib/core/panel/storage/panel_app_settings_repository.dart)",
+      "Bash(head -n 196 app/lib/app/panelmate_app.dart)",
+      "Bash(tail -n +429 app/lib/app/panelmate_app.dart)",
+      "Read(//tmp/**)"
     ]
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:panelmate/app/panel_gradient_theme.dart';
+import 'package:panelmate/core/panel/models/panel_security_settings.dart';
 import 'package:panelmate/core/panel/storage/panel_app_settings_repository.dart';
 import 'package:panelmate/features/settings/presentation/settings_page.dart';
 

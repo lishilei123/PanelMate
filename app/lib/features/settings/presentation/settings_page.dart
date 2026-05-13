@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../../../app/panel_gradient_theme.dart';
+import '../../../core/panel/models/panel_security_settings.dart';
 import '../../../core/panel/models/server_connection_profile.dart';
 import '../../../core/panel/runtime/panel_server_runtime_state.dart';
 import '../../../core/panel/storage/panel_app_settings_repository.dart';
@@ -52,11 +53,15 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  Future<void> _handleSecuritySettingsChange(
-    PanelSecuritySettings settings,
+  Future<void> _patchSecuritySettings(
+    PanelSecuritySettings Function(PanelSecuritySettings settings) update,
   ) async {
+    final nextSettings = update(widget.securitySettings);
+    if (nextSettings == widget.securitySettings) {
+      return;
+    }
     try {
-      await widget.onSecuritySettingsChanged(settings);
+      await widget.onSecuritySettingsChanged(nextSettings);
       if (!mounted) {
         return;
       }
@@ -88,8 +93,8 @@ class _SettingsPageState extends State<SettingsPage> {
       return;
     }
 
-    await _handleSecuritySettingsChange(
-      widget.securitySettings.copyWith(autoLockInterval: result),
+    await _patchSecuritySettings(
+      (s) => s.copyWith(autoLockInterval: result),
     );
   }
 
@@ -311,8 +316,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 value: widget.securitySettings.appLockEnabled,
                 onChanged: (value) {
                   unawaited(
-                    _handleSecuritySettingsChange(
-                      widget.securitySettings.copyWith(appLockEnabled: value),
+                    _patchSecuritySettings(
+                      (s) => s.copyWith(appLockEnabled: value),
                     ),
                   );
                 },
@@ -326,10 +331,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 value: widget.securitySettings.backgroundBlurEnabled,
                 onChanged: (value) {
                   unawaited(
-                    _handleSecuritySettingsChange(
-                      widget.securitySettings.copyWith(
-                        backgroundBlurEnabled: value,
-                      ),
+                    _patchSecuritySettings(
+                      (s) => s.copyWith(backgroundBlurEnabled: value),
                     ),
                   );
                 },
