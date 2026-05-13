@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../core/panel/storage/panel_app_settings_repository.dart';
 import '../core/panel/storage/panel_server_repository.dart';
 import '../features/home/presentation/panel_home_shell_page.dart';
+import '../shared/widgets/panel_card.dart';
 import 'panel_gradient_theme.dart';
 import 'panel_theme.dart';
 
@@ -257,7 +258,7 @@ class _PanelSecurityGateState extends State<_PanelSecurityGate>
   void _handleBackgrounded() {
     _backgroundedAt = DateTime.now();
     _idleTimer?.cancel();
-    if (widget.securitySettings.backgroundBlurEnabled) {
+    if (widget.securitySettings.backgroundBlurEnabled && !_privacyOverlayVisible) {
       setState(() => _privacyOverlayVisible = true);
     }
   }
@@ -271,16 +272,24 @@ class _PanelSecurityGateState extends State<_PanelSecurityGate>
         autoLockDuration != null &&
         DateTime.now().difference(backgroundedAt) >= autoLockDuration;
 
-    setState(() {
-      _locked = shouldLock;
-      _privacyOverlayVisible = shouldLock ? true : false;
-    });
+    if (_locked != shouldLock || _privacyOverlayVisible != shouldLock) {
+      setState(() {
+        _locked = shouldLock;
+        _privacyOverlayVisible = shouldLock;
+      });
+    }
     _backgroundedAt = null;
     _syncIdleTimer();
   }
 
   void _handleUserInteraction() {
-    if (_locked) {
+    if (_locked || !widget.securitySettings.appLockEnabled) {
+      return;
+    }
+    if (PanelAppSettingsRepository.durationForAutoLockInterval(
+          widget.securitySettings.autoLockInterval,
+        ) ==
+        null) {
       return;
     }
     _syncIdleTimer();
@@ -323,7 +332,6 @@ class _PanelSecurityGateState extends State<_PanelSecurityGate>
     return Listener(
       behavior: HitTestBehavior.translucent,
       onPointerDown: (_) => _handleUserInteraction(),
-      onPointerMove: (_) => _handleUserInteraction(),
       onPointerSignal: (_) => _handleUserInteraction(),
       child: Stack(
         children: [
@@ -367,76 +375,52 @@ class _PanelSecurityOverlay extends StatelessWidget {
             ),
           ),
           Center(
-            child: PanelCardSurface(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    locked ? Icons.lock_outline : Icons.visibility_off_outlined,
-                    size: 42,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    locked ? 'PanelMate 已锁定' : '已隐藏敏感信息',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    locked
-                        ? '应用长时间未操作或从后台返回，已显示锁定遮罩。'
-                        : '应用处于后台或任务切换状态，敏感内容已被遮挡。',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFF647181),
-                        ),
-                  ),
-                  if (locked) ...[
-                    const SizedBox(height: 18),
-                    FilledButton(
-                      key: const ValueKey('security_gate.continue'),
-                      onPressed: onUnlock,
-                      child: const Text('继续使用'),
+            child: SizedBox(
+              width: 300,
+              child: PanelCard(
+                padding: const EdgeInsets.all(22),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      locked
+                          ? Icons.lock_outline
+                          : Icons.visibility_off_outlined,
+                      size: 42,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
+                    const SizedBox(height: 14),
+                    Text(
+                      locked ? 'PanelMate 已锁定' : '已隐藏敏感信息',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      locked
+                          ? '应用长时间未操作或从后台返回，已显示锁定遮罩。'
+                          : '应用处于后台或任务切换状态，敏感内容已被遮挡。',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFF647181),
+                          ),
+                    ),
+                    if (locked) ...[
+                      const SizedBox(height: 18),
+                      FilledButton(
+                        key: const ValueKey('security_gate.continue'),
+                        onPressed: onUnlock,
+                        child: const Text('继续使用'),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-class PanelCardSurface extends StatelessWidget {
-  const PanelCardSurface({
-    super.key,
-    required this.child,
-  });
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 300,
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.84),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.74)),
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
-            blurRadius: 30,
-            offset: const Offset(0, 16),
-          ),
-        ],
-      ),
-      child: child,
     );
   }
 }

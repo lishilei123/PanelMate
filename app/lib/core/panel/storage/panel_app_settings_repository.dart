@@ -149,20 +149,25 @@ class PanelAppSettingsRepository {
 
   Future<PanelSecuritySettings> loadSecuritySettings() async {
     final preferences = await SharedPreferences.getInstance();
-    final appLockEnabled = preferences.getBool(appLockEnabledStorageKey) ??
-        defaultAppLockEnabled;
+    final storedAppLockEnabled = preferences.getBool(appLockEnabledStorageKey);
+    final appLockEnabled = storedAppLockEnabled ?? defaultAppLockEnabled;
+    final storedBackgroundBlurEnabled =
+        preferences.getBool(backgroundBlurEnabledStorageKey);
     final backgroundBlurEnabled =
-        preferences.getBool(backgroundBlurEnabledStorageKey) ??
-            defaultBackgroundBlurEnabled;
+        storedBackgroundBlurEnabled ?? defaultBackgroundBlurEnabled;
     final storedAutoLockInterval =
         preferences.getString(autoLockIntervalStorageKey);
     final autoLockInterval = normalizeAutoLockInterval(storedAutoLockInterval);
 
-    await preferences.setBool(appLockEnabledStorageKey, appLockEnabled);
-    await preferences.setBool(
-      backgroundBlurEnabledStorageKey,
-      backgroundBlurEnabled,
-    );
+    if (storedAppLockEnabled == null) {
+      await preferences.setBool(appLockEnabledStorageKey, appLockEnabled);
+    }
+    if (storedBackgroundBlurEnabled == null) {
+      await preferences.setBool(
+        backgroundBlurEnabledStorageKey,
+        backgroundBlurEnabled,
+      );
+    }
     if (storedAutoLockInterval != autoLockInterval) {
       await preferences.setString(autoLockIntervalStorageKey, autoLockInterval);
     }

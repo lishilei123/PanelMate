@@ -134,7 +134,7 @@ class _AddServerPageState extends State<AddServerPage> {
       setState(() {
         _probeResult = null;
         _testErrorMessage = message;
-        _lastTestFailedForMfa = _isMfaError(error, message);
+        _lastTestFailedForMfa = _isMfaError(error);
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('连接测试失败：$message')),
@@ -159,11 +159,15 @@ class _AddServerPageState extends State<AddServerPage> {
     );
   }
 
-  bool _isMfaError(Object error, String resolvedMessage) {
-    if (error is PanelApiException && error.code == 'mfa_required') {
+  bool _isMfaError(Object error) {
+    if (error is! PanelApiException) {
+      return false;
+    }
+    if (error.code == 'mfa_required') {
       return true;
     }
-    return resolvedMessage.contains('MFA') && resolvedMessage.contains('API Key');
+    return error.code == 'panel_response_error' &&
+        error.message.trim() == 'ErrMFA';
   }
 
   void _switchToApiKeyAuth() {
@@ -206,6 +210,7 @@ class _AddServerPageState extends State<AddServerPage> {
       _didTest = false;
       _probeResult = null;
       _testErrorMessage = null;
+      _lastTestFailedForMfa = false;
     });
   }
 
