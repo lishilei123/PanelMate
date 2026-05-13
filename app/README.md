@@ -109,5 +109,5 @@ flutter build web --dart-define=PANEL_WEB_PROXY_ORIGIN=http://127.0.0.1:8787
 - 当前是纯前端直连方案，不经过自建中转后端
 - 浏览器环境下的安全存储依赖浏览器安全上下文，建议本地用 `localhost`，生产用 `HTTPS`
 - `flutter_secure_storage` 在部分 WebAssembly dry run 场景会有兼容提示，但当前 `Chrome/JS` 调试与构建不受影响
-- 账号密码登录已支持验证码弹窗输入；MFA 暂不处理，遇到 MFA 时会提示改用其他接入方式或后续补齐验证流程
+- 账号密码登录已支持验证码弹窗输入；账号开启 MFA 时不支持自动同步，连接测试会给出明确报错并在错误提示下方直接提供 “切换为 API Key” 按钮
 - 没有苹果机器时，可以先在 Windows 上完成 Web 联调和 Flutter 前端开发；真正打包 iOS 时再接入 Mac 或云端 macOS CI

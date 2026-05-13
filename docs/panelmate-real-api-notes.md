@@ -27,7 +27,7 @@ RSA_PKCS1(AES_KEY):BASE64(IV):AES_CBC_PKCS7(password)
 - If a business request returns HTTP `401` or a panel business error `ErrNotLogin`, clear runtime credentials, run the same account-password login flow again, persist the new auth data, and retry the original request once.
 - In Web debug mode, browsers cannot expose `Set-Cookie` or let client code set `Cookie` directly. The local proxy mirrors upstream `Set-Cookie` values as `X-PanelMate-Set-Cookie` and translates frontend `X-PanelMate-Cookie` values back to the real `Cookie` request header.
 - If `/core/auth/setting` returns `needCaptcha: true`, load `/api/v2/core/auth/captcha`, show `imagePath`, then submit `captcha` and `captchaID` with `/core/auth/login`. This also applies during automatic re-login after session expiry. If login returns `ErrCaptchaCode`, reload captcha and retry.
-- MFA is not implemented in PanelMate yet. If login returns MFA status, the client should fail clearly instead of retrying silently.
+- MFA second-factor is not implemented in PanelMate. When `/core/auth/login` returns a non-empty `mfaStatus` (e.g. `Enable`), the client raises a `PanelApiException` with `code: 'mfa_required'` instead of retrying silently. The connection-test UI in `AddServerPage` recognizes this case (plus the `panel_response_error` / `ErrMFA` variant) and renders a one-tap “Switch to API Key” action under the error notice.
 
 ## API Key Login
 

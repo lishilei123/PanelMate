@@ -131,7 +131,7 @@ flutter build web
 - 当前是纯前端直连方案，不经过自建中转后端。
 - Web 环境依赖目标面板开放 CORS；否则需要使用本地调试代理。
 - 自签名证书可能影响浏览器联调。
-- 账号密码登录已支持 1Panel V2 的 `panel_public_key`、RSA + AES-CBC 加密、验证码、session cookie、CSRF token 与登录态失效后的自动重登流程；MFA 仍需后续补齐。
+- 账号密码登录已支持 1Panel V2 的 `panel_public_key`、RSA + AES-CBC 加密、验证码、session cookie、CSRF token 与登录态失效后的自动重登流程；账号开启了 MFA 时不支持自动同步，连接测试会给出友好提示并提供一键切换到 API Key 接入。
 - iOS 正式打包需要 macOS / Xcode 环境。
 - `flutter_secure_storage` 在部分 WebAssembly dry run 场景会提示兼容问题，但不影响当前 Chrome/JS 构建运行。
 
